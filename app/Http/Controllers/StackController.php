@@ -41,8 +41,11 @@ class StackController extends Controller
         return response()->json(['success' => true, 'message' => 'Bonds assigned successfully.']);
     }
 
-    public function export(Stack $stack) {
-        return Excel::download(new StackExport($stack), "Stack_{$stack->stack_name}.xlsx");
+    public function export(Stack $stack) 
+    {
+        // The filename includes the stack name for easy office filing
+        $fileName = 'Report_' . str_replace(' ', '_', $stack->stack_name) . '.xlsx';
+        return Excel::download(new StackExport($stack), $fileName);
     }
 
 }
