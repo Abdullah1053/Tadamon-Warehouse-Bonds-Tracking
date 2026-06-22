@@ -1,0 +1,26 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # 1. Force HTTPS and Redirect to specific domain
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://tadamon.takder.io/$1 [L,R=301]
+
+    # 2. Handle Authorization Header (Crucial for AJAX/APIs)
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # 3. Transparently route all traffic to the /public folder
+    # This prevents users from seeing "/public/" in the URL
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Handle PHP environment issues (Optional but recommended)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 64M
+    php_value post_max_size 64M
+</IfModule>
