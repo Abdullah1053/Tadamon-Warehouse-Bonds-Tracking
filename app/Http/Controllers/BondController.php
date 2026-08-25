@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Bond;
 use App\Models\Stack;
-use DB;
+use Illuminate\Support\Facades\DB;
+
 
 class BondController extends Controller
 {
@@ -13,13 +14,17 @@ class BondController extends Controller
     {
         $lastBond = Bond::latest('id')->first();
 
-        // Increment serial: last serial + 1 (default to 3001)
         $nextSerial = ($lastBond->bond_serial ?? 3000) + 1;
-
-        // Persist date: Use last bond date, or today's date if no bonds exist
         $defaultDate = $lastBond ? $lastBond->date : date('Y-m-d');
 
-        return view('bonds.create', compact('nextSerial', 'defaultDate'));
+        // Fetch unique receiver names, sorted alphabetically, excluding placeholders
+        $receivers = Bond::where('received_from', '!=', '--- N/A ---')
+            ->select('received_from')
+            ->distinct()
+            ->orderBy('received_from', 'asc')
+            ->pluck('received_from');
+
+        return view('bonds.create', compact('nextSerial', 'defaultDate', 'receivers'));
     }
 
 
@@ -100,17 +105,35 @@ class BondController extends Controller
     public function update(Request $request, Bond $bond)
     {
         return DB::transaction(function () use ($request, $bond) {
-            // 1. Update Header
-            $bond->update($request->only(['bond_serial', 'date', 'operation_name', 'received_from', 'car_number']));
+            // 1. Prepare Data
+            $data = $request->only([
+                'bond_serial',
+                'date',
+                'operation_name',
+                'received_from',
+                'car_number',
+                'note' // Added
+            ]);
 
-            // 2. Sync Items (Remove old, add current)
+            // 2. Handle Checkbox logic (is_missing)
+            // If the checkbox is in the request, it's true (1), otherwise false (0)
+            $data['is_missing'] = $request->has('is_missing') ? 1 : 0;
+
+            // 3. Update Header
+            $bond->update($data);
+
+            // 4. Sync Items
+            // We only sync items if the bond is NOT marked as missing
             $bond->items()->delete();
-            foreach ($request->items as $item) {
-                if (!empty($item['description'])) {
-                    $bond->items()->create([
-                        'item_description' => $item['description'],
-                        'quantity'         => $item['quantity'],
-                    ]);
+
+            if (!$data['is_missing'] && $request->has('items')) {
+                foreach ($request->items as $item) {
+                    if (!empty($item['description'])) {
+                        $bond->items()->create([
+                            'item_description' => $item['description'],
+                            'quantity'         => $item['quantity'],
+                        ]);
+                    }
                 }
             }
 

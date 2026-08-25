@@ -25,7 +25,15 @@
 
                 <div>
                     <label class="block text-sm font-bold text-gray-600">Received From (Name)</label>
-                    <input type="text" name="received_from" class="w-full border p-2 rounded" required>
+                    <!-- Linked to the datalist via the 'list' attribute -->
+                    <input type="text" name="received_from" list="receivers_list"
+                        class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-400" autocomplete="off" required>
+
+                    <datalist id="receivers_list">
+                        @foreach ($receivers as $name)
+                            <option value="{{ $name }}">
+                        @endforeach
+                    </datalist>
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-600">Vehicle Number</label>
@@ -124,6 +132,17 @@
                 const result = await response.json();
 
                 if (result.success) {
+
+                    const newName = formData.get('received_from');
+                    const datalist = document.getElementById('receivers_list');
+
+                    // Check if the name already exists in the list; if not, add it
+                    const existingOptions = Array.from(datalist.options).map(opt => opt.value);
+                    if (newName && !existingOptions.includes(newName) && newName !== '--- N/A ---') {
+                        const newOption = document.createElement('option');
+                        newOption.value = newName;
+                        datalist.appendChild(newOption);
+                    }
                     // Success Feedback
                     alert('Bond #' + document.getElementById('bond_serial').value + ' saved successfully!');
 
