@@ -9,12 +9,22 @@ use DB;
 
 class BondController extends Controller
 {
-    public function create() {
-        $nextSerial = (Bond::max('bond_serial') ?? 3000) + 1;
-        return view('bonds.create', compact('nextSerial'));
+    public function create()
+    {
+        $lastBond = Bond::latest('id')->first();
+
+        // Increment serial: last serial + 1 (default to 3001)
+        $nextSerial = ($lastBond->bond_serial ?? 3000) + 1;
+
+        // Persist date: Use last bond date, or today's date if no bonds exist
+        $defaultDate = $lastBond ? $lastBond->date : date('Y-m-d');
+
+        return view('bonds.create', compact('nextSerial', 'defaultDate'));
     }
 
-    public function store(Request $request) {
+
+    public function store(Request $request)
+    {
         return DB::transaction(function () use ($request) {
             $bond = Bond::create($request->all());
 
@@ -33,7 +43,8 @@ class BondController extends Controller
         });
     }
 
-    public function index() {
+    public function index()
+    {
         return view('bonds.index', [
             // Table 1: Ready for Stacking
             'unassignedBonds' => Bond::whereNull('stack_id')->with('items')->latest()->get(),
@@ -45,19 +56,22 @@ class BondController extends Controller
     }
 
     // Action to remove a bond from a stack (Unstack)
-    public function detach(Bond $bond) {
+    public function detach(Bond $bond)
+    {
         $bond->update(['stack_id' => null]);
         return back()->with('success', 'Bond unlinked from stack.');
     }
 
     // Action to completely delete a bond record
-    public function destroy(Bond $bond) {
+    public function destroy(Bond $bond)
+    {
         $bond->delete(); // Cascades to items if migration set correctly
         return back()->with('success', 'Bond deleted successfully.');
     }
 
 
-    public function bulkAssign(Request $request) {
+    public function bulkAssign(Request $request)
+    {
         $request->validate([
             'bond_ids' => 'required|array',
             'stack_id' => 'required|exists:stacks,id'
@@ -67,21 +81,24 @@ class BondController extends Controller
             ->update(['stack_id' => $request->stack_id]);
 
         return response()->json([
-            'success' => true, 
+            'success' => true,
             'message' => count($request->bond_ids) . ' bonds assigned successfully.'
         ]);
     }
 
 
-    public function show(Bond $bond) {
+    public function show(Bond $bond)
+    {
         return view('bonds.show', compact('bond'));
     }
 
-    public function edit(Bond $bond) {
+    public function edit(Bond $bond)
+    {
         return view('bonds.edit', compact('bond'));
     }
 
-    public function update(Request $request, Bond $bond) {
+    public function update(Request $request, Bond $bond)
+    {
         return DB::transaction(function () use ($request, $bond) {
             // 1. Update Header
             $bond->update($request->only(['bond_serial', 'date', 'operation_name', 'received_from', 'car_number']));
@@ -100,6 +117,4 @@ class BondController extends Controller
             return response()->json(['success' => true, 'redirect' => route('bonds.index')]);
         });
     }
-
-    
 }

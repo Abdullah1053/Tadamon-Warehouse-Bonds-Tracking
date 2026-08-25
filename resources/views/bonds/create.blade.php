@@ -13,14 +13,16 @@
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-600">Date</label>
-                    <input type="date" name="date" value="{{ date('Y-m-d') }}" class="w-full border p-2 rounded"
+                    <input type="date" name="date" value="{{ $defaultDate }}" class="w-full border p-2 rounded"
                         required>
                 </div>
                 <div class="col-span-2">
                     <label class="block text-sm font-bold text-gray-600">Operation / Project Name</label>
-                    <input type="text" name="operation_name" class="w-full border p-2 rounded"
-                        placeholder="Project Site A" required>
+                    <input type="text" name="operation_name" value="جسر النصر"
+                        class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-400" placeholder="Project Site A"
+                        required>
                 </div>
+
                 <div>
                     <label class="block text-sm font-bold text-gray-600">Received From (Name)</label>
                     <input type="text" name="received_from" class="w-full border p-2 rounded" required>
@@ -34,7 +36,7 @@
                 <div class="col-span-2">
                     <label class="block text-sm font-bold text-gray-600">Additional Notes</label>
                     <textarea name="note" rows="2" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-400"
-                        placeholder="Any special instructions or tool conditions..."></textarea>
+                        placeholder="Any special instructions...">رقم الفاتورة: </textarea>
                 </div>
             </div>
 
@@ -127,6 +129,9 @@
 
                     // Prepare for next paper
                     e.target.reset();
+                    document.querySelector('textarea[name="note"]').value = "رقم الفاتورة: ";
+                    document.querySelector('input[name="operation_name"]').value = "جسر النصر";
+
                     document.getElementById('bond_serial').value = result.next_serial;
 
                     // Reset items table to 1 row
@@ -149,39 +154,41 @@
     </script>
     <script>
         async function saveMissingBond() {
-    const serial = document.getElementById('bond_serial').value;
-    const date = document.querySelector('input[name="date"]').value;
+            const serial = document.getElementById('bond_serial').value;
+            const date = document.querySelector('input[name="date"]').value;
 
-    if(!confirm(`Confirm serial #${serial} is missing from the physical stack?`)) return;
+            if (!confirm(`Confirm serial #${serial} is missing from the physical stack?`)) return;
 
-    const formData = new FormData();
-    formData.append('_token', '{{ csrf_token() }}');
-    formData.append('bond_serial', serial);
-    formData.append('date', date);
-    formData.append('operation_name', '--- MISSING ---');
-    formData.append('received_from', '--- N/A ---');
-    formData.append('is_missing', 1);
-    formData.append('note', 'This bond was missing from the physical sequence.');
-    // No items sent
+            const formData = new FormData();
+            formData.append('_token', '{{ csrf_token() }}');
+            formData.append('bond_serial', serial);
+            formData.append('date', date);
+            formData.append('operation_name', '--- MISSING ---');
+            formData.append('received_from', '--- N/A ---');
+            formData.append('is_missing', 1);
+            formData.append('note', 'This bond was missing from the physical sequence.');
+            // No items sent
 
-    const response = await fetch('/bonds/store', {
-        method: 'POST',
-        body: formData,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    });
+            const response = await fetch('/bonds/store', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
 
-    const result = await response.json();
-    if(result.success) {
-        alert(`Serial #${serial} recorded as missing.`);
-        document.getElementById('bondForm').reset();
-        document.getElementById('bond_serial').value = result.next_serial;
-        document.getElementById('missing_num_display').innerText = result.next_serial;
-    }
-}
+            const result = await response.json();
+            if (result.success) {
+                alert(`Serial #${serial} recorded as missing.`);
+                document.getElementById('bondForm').reset();
+                document.getElementById('bond_serial').value = result.next_serial;
+                document.getElementById('missing_num_display').innerText = result.next_serial;
+            }
+        }
 
-// Update the display number when user manually types a serial
-document.getElementById('bond_serial').addEventListener('input', (e) => {
-    document.getElementById('missing_num_display').innerText = e.target.value;
-});
-     </script>   
+        // Update the display number when user manually types a serial
+        document.getElementById('bond_serial').addEventListener('input', (e) => {
+            document.getElementById('missing_num_display').innerText = e.target.value;
+        });
+    </script>
 @endsection

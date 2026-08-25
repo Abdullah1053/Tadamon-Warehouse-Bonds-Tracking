@@ -69,21 +69,65 @@
         </form>
     </div>
 
-    <script>
-        // REUSE the addRow and removeRow functions from your create.blade.php
-        // Update the index variable: let rowIdx = {{ $bond->items->count() }};
+   <script>
+    // Initialize rowIdx based on the number of existing items to avoid index collisions
+    let rowIdx = {{ $bond->items->count() }};
 
-        document.getElementById('editBondForm').onsubmit = async (e) => {
-            e.preventDefault();
+    function addRow() {
+        const tableBody = document.querySelector('#itemsTable tbody');
+        const newRow = `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="border">
+                    <input type="text" name="items[${rowIdx}][description]" class="w-full p-2 outline-none" required placeholder="Tool description...">
+                </td>
+                <td class="border">
+                    <input type="number" name="items[${rowIdx}][quantity]" class="w-full p-2 outline-none" required placeholder="0">
+                </td>
+                <td class="border text-center">
+                    <button type="button" onclick="removeRow(this)" class="text-red-500 font-black hover:text-red-700 px-2">✕</button>
+                </td>
+            </tr>`;
+        tableBody.insertAdjacentHTML('beforeend', newRow);
+        rowIdx++;
+    }
+
+    function removeRow(btn) {
+        if (document.querySelectorAll('#itemsTable tbody tr').length > 1) {
+            btn.closest('tr').remove();
+        } else {
+            alert("At least one item is required.");
+        }
+    }
+
+    document.getElementById('editBondForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const saveBtn = e.target.querySelector('button[type="submit"]');
+        saveBtn.disabled = true;
+        saveBtn.innerText = 'UPDATING...';
+
+        try {
             const response = await fetch('{{ route('bonds.update', $bond->id) }}', {
-                method: 'POST', // We spoof PUT with @method
+                method: 'POST', // standard POST used; Laravel spoofs PUT via the hidden _method input
                 body: new FormData(e.target),
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             });
+
             const result = await response.json();
-            if (result.success) window.location.href = result.redirect;
-        };
-    </script>
+            if (result.success) {
+                window.location.href = result.redirect;
+            } else {
+                alert('Update failed. Please check your input.');
+            }
+        } catch (error) {
+            console.error('Submission error:', error);
+            alert('An error occurred while updating the record.');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerText = 'UPDATE RECORD';
+        }
+    };
+</script>
 @endsection
