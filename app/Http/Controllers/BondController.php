@@ -12,18 +12,28 @@ class BondController extends Controller
 {
     public function create()
     {
+        // 1. Fetch the most recent bond to get the previous date and serial format
         $lastBond = Bond::latest('id')->first();
 
-        $nextSerial = ($lastBond->bond_serial ?? 3000) + 1;
+        // 2. Handle Serial Logic (Padding zeros)
+        $lastSerial = $lastBond ? $lastBond->bond_serial : '3000';
+        $nextNumber = (int) $lastSerial + 1;
+        // We use the length of the previous serial to keep the padding consistent (e.g., 03154 -> 5 digits)
+        $nextSerial = str_pad($nextNumber, strlen($lastSerial), '0', STR_PAD_LEFT);
+
+        // 3. Handle Date Logic (Persisting previous date)
+        // Fix: Define the missing variable here
         $defaultDate = $lastBond ? $lastBond->date : date('Y-m-d');
 
-        // Fetch unique receiver names, sorted alphabetically, excluding placeholders
+        // dd($nextSerial);
+        // 4. Fetch unique receiver names for the datalist
         $receivers = Bond::where('received_from', '!=', '--- N/A ---')
             ->select('received_from')
             ->distinct()
             ->orderBy('received_from', 'asc')
             ->pluck('received_from');
 
+        // 5. Return view with all variables defined
         return view('bonds.create', compact('nextSerial', 'defaultDate', 'receivers'));
     }
 
@@ -44,7 +54,16 @@ class BondController extends Controller
                     }
                 }
             }
-            return response()->json(['success' => true, 'next_serial' => $bond->bond_serial + 1]);
+            $currentSerial = $request->bond_serial; // e.g., "03154"
+            $nextNumber = (int) $currentSerial + 1;
+            $formattedNext = str_pad($nextNumber, strlen($currentSerial), '0', STR_PAD_LEFT);
+            
+
+            return response()->json([
+            'success' => true, 
+            'next_serial' => $formattedNext,
+            'saved_date'  => $bond->date // Send the date back to keep the form consistent
+        ]);
         });
     }
 
@@ -54,9 +73,9 @@ class BondController extends Controller
             // Table 1: Ready for Stacking
             'unassignedBonds' => Bond::whereNull('stack_id')->with('items')->latest()->get(),
             // Table 2: Already Grouped
-            'assignedBonds'   => Bond::whereNotNull('stack_id')->with(['items', 'stack'])->latest()->get(),
+            'assignedBonds' => Bond::whereNotNull('stack_id')->with(['items', 'stack'])->latest()->get(),
             // For the dropdown
-            'stacks'          => Stack::all()
+            'stacks' => Stack::all()
         ]);
     }
 
@@ -131,7 +150,7 @@ class BondController extends Controller
                     if (!empty($item['description'])) {
                         $bond->items()->create([
                             'item_description' => $item['description'],
-                            'quantity'         => $item['quantity'],
+                            'quantity' => $item['quantity'],
                         ]);
                     }
                 }

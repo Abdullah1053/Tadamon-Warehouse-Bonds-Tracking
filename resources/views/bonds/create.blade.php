@@ -8,7 +8,7 @@
             <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded border">
                 <div>
                     <label class="block text-sm font-bold text-gray-600">Bond Serial Number</label>
-                    <input type="number" id="bond_serial" name="bond_serial" value="{{ $nextSerial }}"
+                    <input type="text" id="bond_serial" name="bond_serial" value="{{ $nextSerial }}"
                         class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-400" required>
                 </div>
                 <div>
@@ -132,34 +132,39 @@
                 const result = await response.json();
 
                 if (result.success) {
-
+                    // 1. Datalist logic (existing)
                     const newName = formData.get('received_from');
                     const datalist = document.getElementById('receivers_list');
-
-                    // Check if the name already exists in the list; if not, add it
                     const existingOptions = Array.from(datalist.options).map(opt => opt.value);
                     if (newName && !existingOptions.includes(newName) && newName !== '--- N/A ---') {
                         const newOption = document.createElement('option');
                         newOption.value = newName;
                         datalist.appendChild(newOption);
                     }
+
                     // Success Feedback
                     alert('Bond #' + document.getElementById('bond_serial').value + ' saved successfully!');
 
-                    // Prepare for next paper
-                    e.target.reset();
+                    // 2. The Reset & Persistence Logic
+                    e.target.reset(); // This clears everything to 'default'
+
+                    // 3. Force the 'Persistence' of the values you want to keep
+                    document.querySelector('input[name="date"]').value = result.saved_date; // Keep the date!
+                    document.getElementById('bond_serial').value = result.next_serial; // Set padded serial
+                    document.getElementById('missing_num_display').innerText = result
+                        .next_serial; // Update button label
+
+                    // 4. Restore the Arabic Defaults
                     document.querySelector('textarea[name="note"]').value = "رقم الفاتورة: ";
                     document.querySelector('input[name="operation_name"]').value = "جسر النصر";
 
-                    document.getElementById('bond_serial').value = result.next_serial;
-
-                    // Reset items table to 1 row
+                    // 5. Reset items table to 1 row (existing)
                     document.querySelector('#itemsTable tbody').innerHTML = `
-                <tr>
-                    <td class="border"><input type="text" name="items[0][description]" class="w-full p-2 outline-none" required></td>
-                    <td class="border"><input type="number" name="items[0][quantity]" class="w-full p-2 outline-none" required></td>
-                    <td class="border text-center"><button type="button" onclick="removeRow(this)" class="text-red-500 font-bold">X</button></td>
-                </tr>`;
+        <tr>
+            <td class="border"><input type="text" name="items[0][description]" class="w-full p-2 outline-none" required></td>
+            <td class="border"><input type="number" name="items[0][quantity]" class="w-full p-2 outline-none" required></td>
+            <td class="border text-center"><button type="button" onclick="removeRow(this)" class="text-red-500 font-bold">X</button></td>
+        </tr>`;
                     rowIdx = 1;
                 }
             } catch (error) {
@@ -199,10 +204,19 @@
             const result = await response.json();
             if (result.success) {
                 alert(`Serial #${serial} recorded as missing.`);
+
+                const savedDate = document.querySelector('input[name="date"]').value;
+
                 document.getElementById('bondForm').reset();
+
+                // Restore state
+                document.querySelector('input[name="date"]').value = savedDate;
                 document.getElementById('bond_serial').value = result.next_serial;
                 document.getElementById('missing_num_display').innerText = result.next_serial;
+                document.querySelector('textarea[name="note"]').value = "رقم الفاتورة: ";
+                document.querySelector('input[name="operation_name"]').value = "جسر النصر";
             }
+
         }
 
         // Update the display number when user manually types a serial
