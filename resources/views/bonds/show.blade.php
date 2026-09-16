@@ -39,6 +39,11 @@
         <strong>Note:</strong> {{ $bond->note }}
     </div>
     @endif
+    @if($bond->bond_link)
+    <div class="mt-3 p-3 bg-blue-50 border-l-4 border-blue-400 text-sm">
+        <strong>Bond Link / Image:</strong> <a href="{{ $bond->bond_link }}" target="_blank" class="text-blue-600 underline break-all">{{ $bond->bond_link }}</a>
+    </div>
+    @endif
     <div class="flex justify-between mt-20 italic text-sm">
         <div>Warehouse Signature: ________________</div>
         <div>Receiver Signature: ________________</div>

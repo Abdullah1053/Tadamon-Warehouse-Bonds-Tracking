@@ -22,4 +22,5 @@ Route::put('/bonds/{bond}', [BondController::class, 'update'])->name('bonds.upda
 // Stack & Export Actions
 Route::post('/stacks/create', [StackController::class, 'createStack'])->name('stacks.create');
 Route::post('/stacks/bulk-assign', [StackController::class, 'bulkAssign'])->name('stacks.bulkAssign');
+Route::get('/stacks/export-all', [StackController::class, 'exportAll'])->name('stacks.exportAll');
 Route::get('/stacks/export/{stack}', [StackController::class, 'export'])->name('stacks.export');

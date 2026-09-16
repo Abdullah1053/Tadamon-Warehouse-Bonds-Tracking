@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Bond;
+use App\Models\BondItem;
 use App\Models\Stack;
 use Illuminate\Support\Facades\DB;
 
@@ -33,8 +34,12 @@ class BondController extends Controller
             ->orderBy('received_from', 'asc')
             ->pluck('received_from');
 
+            // 2. Fetch unique item descriptions for suggestions
+    $itemSuggestions = BondItem::distinct()
+        ->orderBy('item_description', 'asc')
+        ->pluck('item_description');
         // 5. Return view with all variables defined
-        return view('bonds.create', compact('nextSerial', 'defaultDate', 'receivers'));
+    return view('bonds.create', compact('nextSerial', 'defaultDate', 'receivers', 'itemSuggestions'));
     }
 
 
@@ -131,7 +136,8 @@ class BondController extends Controller
                 'operation_name',
                 'received_from',
                 'car_number',
-                'note' // Added
+                'note', // Added
+                'bond_link'
             ]);
 
             // 2. Handle Checkbox logic (is_missing)

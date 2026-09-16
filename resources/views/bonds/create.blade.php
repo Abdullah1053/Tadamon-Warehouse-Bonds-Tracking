@@ -46,6 +46,12 @@
                     <textarea name="note" rows="2" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-400"
                         placeholder="Any special instructions...">رقم الفاتورة: </textarea>
                 </div>
+
+                <div class="col-span-2">
+                    <label class="block text-sm font-bold text-gray-600">Bond Link / Image (رابط السند أو الصورة)</label>
+                    <input type="text" name="bond_link" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-400"
+                        placeholder="https://... or link to bond image">
+                </div>
             </div>
 
             <table id="itemsTable" class="w-full border-collapse">
@@ -60,8 +66,17 @@
                     <tr>
                         <td class="border"><input type="text" name="items[0][description]"
                                 class="w-full p-2 outline-none" required></td>
-                        <td class="border"><input type="number" name="items[0][quantity]" class="w-full p-2 outline-none"
-                                required></td>
+
+                        <datalist id="items_list">
+                            @foreach ($itemSuggestions as $desc)
+                                <option value="{{ $desc }}">
+                            @endforeach
+                        </datalist>
+                        <td class="border">
+                            <input type="number" name="items[0][quantity]" step="any" class="w-full p-2 outline-none"
+                                required>
+                        </td>
+
                         <td class="border text-center"><button type="button" onclick="removeRow(this)"
                                 class="text-red-500 font-bold">X</button></td>
                     </tr>
@@ -96,7 +111,7 @@
             const newRow = `
         <tr class="hover:bg-gray-50 transition">
             <td class="border"><input type="text" name="items[${rowIdx}][description]" class="w-full p-2 outline-none" required placeholder="Tool description..."></td>
-            <td class="border"><input type="number" name="items[${rowIdx}][quantity]" class="w-full p-2 outline-none" required placeholder="0"></td>
+        <td class="border"><input type="number" name="items[${rowIdx}][quantity]" step="any" class="w-full p-2 outline-none" required placeholder="0.00"></td>
             <td class="border text-center"><button type="button" onclick="removeRow(this)" class="text-red-500 font-black hover:text-red-700 px-2">✕</button></td>
         </tr>`;
             tableBody.insertAdjacentHTML('beforeend', newRow);
@@ -162,7 +177,7 @@
                     document.querySelector('#itemsTable tbody').innerHTML = `
         <tr>
             <td class="border"><input type="text" name="items[0][description]" class="w-full p-2 outline-none" required></td>
-            <td class="border"><input type="number" name="items[0][quantity]" class="w-full p-2 outline-none" required></td>
+        <td class="border"><input type="number" name="items[0][quantity]" step="any" class="w-full p-2 outline-none" required></td>
             <td class="border text-center"><button type="button" onclick="removeRow(this)" class="text-red-500 font-bold">X</button></td>
         </tr>`;
                     rowIdx = 1;

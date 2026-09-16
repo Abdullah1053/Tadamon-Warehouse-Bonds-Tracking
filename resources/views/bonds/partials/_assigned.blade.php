@@ -8,6 +8,7 @@
                 <th class="p-3">Serial</th>
                 <th class="p-3">Stack Name</th>
                 <th class="p-3">Receiver</th>
+                <th class="p-3">Link</th>
                 <th class="p-3 text-right">Actions</th>
             </tr>
         </thead>
@@ -24,6 +25,13 @@
                             class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">{{ $bond->stack->stack_name }}</span>
                     </td>
                     <td class="p-3 text-gray-600">{{ $bond->received_from }}</td>
+                    <td class="p-3">
+                        @if ($bond->bond_link)
+                            <a href="{{ $bond->bond_link }}" target="_blank" class="text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1">🔗 Link</a>
+                        @else
+                            <span class="text-gray-300 text-xs">-</span>
+                        @endif
+                    </td>
                     <td class="p-3 text-right flex justify-end gap-2">
                         <a href="{{ route('bonds.show', $bond->id) }}" class="text-blue-600 text-xs font-bold">View</a>
                         <a href="{{ route('bonds.edit', $bond->id) }}"

@@ -19,6 +19,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 class StackExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize, WithEvents, WithCustomStartCell
 {
     protected $stack;
+    protected $bonds;
 
     public function __construct(Stack $stack)
     {
@@ -35,7 +36,8 @@ class StackExport implements FromCollection, WithHeadings, WithMapping, WithStyl
 
     public function collection()
     {
-        return $this->stack->bonds()->with('items')->get();
+        $this->bonds = $this->stack->bonds()->with('items')->get();
+        return $this->bonds;
     }
 
     public function headings(): array
@@ -47,6 +49,7 @@ class StackExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             'المستلم',
             'المواد والأدوات',
             'ملاحظات',
+            'رابط السند',
         ];
     }
 
@@ -63,6 +66,7 @@ class StackExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             $bond->received_from,
             $itemsString,
             $bond->note ?? '---',
+            $bond->bond_link ?? '',
         ];
     }
 
@@ -77,7 +81,7 @@ class StackExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
             ],
             // Data Range styling
-            "A2:F{$rowCount}" => [
+            "A2:G{$rowCount}" => [
                 'borders' => [
                     'allBorders' => ['borderStyle' => Border::BORDER_THIN],
                 ],
@@ -100,7 +104,7 @@ class StackExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                 $sheet->setRightToLeft(true);
 
                 // 2. Insert Main Header at Row 1
-                $sheet->mergeCells('A1:F1');
+                $sheet->mergeCells('A1:G1');
                 $sheet->setCellValue('A1', "تقرير دفتر سندات: " . $this->stack->stack_name);
                 
                 // 3. Style Main Header
@@ -124,8 +128,28 @@ class StackExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                 $sheet->getRowDimension(1)->setRowHeight(40); // Title row
                 $sheet->getRowDimension(2)->setRowHeight(25); // Header row
                 
-                // 5. Adjust Column Width for Items
+                // 5. Adjust Column Width for Items and Bond Link
                 $sheet->getColumnDimension('E')->setAutoSize(false)->setWidth(50);
+                $sheet->getColumnDimension('G')->setAutoSize(false)->setWidth(45);
+
+                // 6. Make Bond Links (Column G) Clickable Hyperlinks
+                $bonds = $this->bonds ?? $this->stack->bonds()->get();
+                $currentRow = 3; // Data rows begin at Row 3 (Row 1: Title, Row 2: Headings)
+                foreach ($bonds as $bond) {
+                    if (!empty($bond->bond_link)) {
+                        $cellCoord = "G{$currentRow}";
+                        $sheet->getCell($cellCoord)->getHyperlink()->setUrl($bond->bond_link);
+                        $sheet->getCell($cellCoord)->getHyperlink()->setTooltip('عرض صورة السند');
+
+                        $sheet->getStyle($cellCoord)->applyFromArray([
+                            'font' => [
+                                'color' => ['rgb' => '0563C1'],
+                                'underline' => true,
+                            ],
+                        ]);
+                    }
+                    $currentRow++;
+                }
             },
         ];
     }

@@ -36,6 +36,13 @@
                     <label class="block text-sm font-bold text-gray-600">Additional Notes</label>
                     <textarea name="note" rows="2" class="w-full border p-2 rounded focus:ring-2 focus:ring-orange-400">{{ $bond->note }}</textarea>
                 </div>
+
+                <div class="col-span-2">
+                    <label class="block text-sm font-bold text-gray-600">Bond Link / Image (رابط السند أو الصورة)</label>
+                    <input type="text" name="bond_link" value="{{ $bond->bond_link }}"
+                        class="w-full border p-2 rounded focus:ring-2 focus:ring-orange-400"
+                        placeholder="https://... or link to bond image">
+                </div>
             </div>
 
             <table id="itemsTable" class="w-full border-collapse">
