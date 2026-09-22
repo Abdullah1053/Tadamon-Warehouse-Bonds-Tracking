@@ -14,9 +14,60 @@ class StackController extends Controller
 {
 
     public function index() {
+        $stacks = Stack::withCount([
+            'bonds',
+            'bonds as cancelled_count' => function ($query) {
+                $query->where(function ($q) {
+                    $q->where('received_from', 'ملغي')
+                      ->orWhere('operation_name', 'ملغي')
+                      ->orWhere('note', 'ملغي');
+                });
+            },
+            'bonds as missing_count' => function ($query) {
+                $query->where(function ($q) {
+                    $q->where('is_missing', 1)
+                      ->orWhere('received_from', 'مفقود')
+                      ->orWhere('operation_name', 'مفقود');
+                });
+            }
+        ])->latest()->get();
+
         return view('dashboard', [
-            'stacks' => Stack::latest()->get(),
+            'stacks' => $stacks,
             'pendingBonds' => Bond::whereNull('stack_id')->with('items')->get()
+        ]);
+    }
+
+    public function show(Stack $stack)
+    {
+        // Load bonds ordered by bond_serial ascending (using numeric sort when possible)
+        $bonds = $stack->bonds()
+            ->with('items')
+            ->orderByRaw('CAST(bond_serial AS UNSIGNED) ASC')
+            ->orderBy('bond_serial', 'asc')
+            ->get();
+
+        // Calculate statistics
+        $totalCount = $bonds->count();
+        $cancelledCount = $bonds->filter(fn($b) => $b->isCancelled())->count();
+        $missingCount = $bonds->filter(fn($b) => $b->isMissing())->count();
+        $normalCount = $totalCount - $cancelledCount - $missingCount;
+
+        // Fetch other stacks for the move modal / dropdown
+        $otherStacks = Stack::where('id', '!=', $stack->id)
+            ->orderBy('stack_name', 'asc')
+            ->get();
+
+        return view('stacks.show', [
+            'stack' => $stack,
+            'bonds' => $bonds,
+            'otherStacks' => $otherStacks,
+            'stats' => [
+                'total' => $totalCount,
+                'normal' => $normalCount,
+                'cancelled' => $cancelledCount,
+                'missing' => $missingCount,
+            ]
         ]);
     }
 

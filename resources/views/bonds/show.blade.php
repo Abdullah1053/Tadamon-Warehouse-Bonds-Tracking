@@ -49,9 +49,22 @@
         <strong>Note:</strong> {{ $bond->note }}
     </div>
     @endif
-    @if($bond->bond_link)
-    <div class="mt-3 p-3 bg-blue-50 border-l-4 border-blue-400 text-sm">
-        <strong>Bond Link / Image:</strong> <a href="{{ $bond->bond_link }}" target="_blank" class="text-blue-600 underline break-all">{{ $bond->bond_link }}</a>
+    @if($bond->hasImage())
+    <div class="mt-6 p-4 bg-gray-50 border rounded-xl">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-sm text-gray-800 flex items-center gap-1.5">
+                <span>🖼️</span>
+                <span>صورة السند الأصلية (Attached Bond Image):</span>
+            </h3>
+            <a href="{{ $bond->image_url }}" target="_blank" class="text-xs text-blue-600 hover:underline font-bold">
+                فتح بالحجم الكامل ↗
+            </a>
+        </div>
+        <div class="text-center bg-white p-2 rounded-lg border overflow-hidden">
+            <a href="{{ $bond->image_url }}" target="_blank">
+                <img src="{{ $bond->image_url }}" alt="Bond #{{ $bond->bond_serial }}" class="max-h-96 mx-auto rounded shadow-sm hover:opacity-95 transition">
+            </a>
+        </div>
     </div>
     @endif
     <div class="flex justify-between mt-20 italic text-sm">

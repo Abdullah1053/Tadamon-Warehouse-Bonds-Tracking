@@ -13,6 +13,9 @@ Route::get('/bonds/create', [BondController::class, 'create'])->name('bonds.crea
 Route::post('/bonds/store', [BondController::class, 'store'])->name('bonds.store');
 Route::get('/bonds', [BondController::class, 'index'])->name('bonds.index');
 Route::post('/bonds/bulk-assign', [BondController::class, 'bulkAssign'])->name('bonds.bulkAssign');
+Route::post('/bonds/bulk-action', [BondController::class, 'bulkAction'])->name('bonds.bulkAction');
+Route::get('/bonds/upload-images', [BondController::class, 'bulkUploadView'])->name('bonds.uploadImagesView');
+Route::post('/bonds/upload-images', [BondController::class, 'bulkUpload'])->name('bonds.bulkUpload');
 Route::post('/bonds/{bond}/detach', [BondController::class, 'detach'])->name('bonds.detach');
 Route::delete('/bonds/{bond}', [BondController::class, 'destroy'])->name('bonds.destroy');
 Route::get('/bonds/{bond}', [BondController::class, 'show'])->name('bonds.show');
@@ -21,6 +24,7 @@ Route::put('/bonds/{bond}', [BondController::class, 'update'])->name('bonds.upda
 
 
 // Stack & Export Actions
+Route::get('/stacks/{stack}', [StackController::class, 'show'])->name('stacks.show');
 Route::post('/stacks/create', [StackController::class, 'createStack'])->name('stacks.create');
 Route::post('/stacks/bulk-assign', [StackController::class, 'bulkAssign'])->name('stacks.bulkAssign');
 Route::get('/stacks/export-all', [StackController::class, 'exportAll'])->name('stacks.exportAll');

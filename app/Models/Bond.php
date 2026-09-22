@@ -61,4 +61,28 @@ protected $fillable = [
         if ($this->isCancelled()) return 'ملغي';
         return 'سليم';
     }
+
+    /**
+     * Get the full URL to the bond image (supports local /storage/ paths and external URLs).
+     */
+    public function getImageUrlAttribute(): ?string
+    {
+        if (empty($this->bond_link)) {
+            return null;
+        }
+
+        if (str_starts_with($this->bond_link, 'http://') || str_starts_with($this->bond_link, 'https://')) {
+            return $this->bond_link;
+        }
+
+        return asset(ltrim($this->bond_link, '/'));
+    }
+
+    /**
+     * Determine if the bond has an attached image.
+     */
+    public function hasImage(): bool
+    {
+        return !empty($this->bond_link);
+    }
 }

@@ -48,23 +48,58 @@
                     <tr class="bg-gray-50 border-b">
                         <th class="p-3 text-sm font-bold text-gray-600">Stack Name</th>
                         <th class="p-3 text-sm font-bold text-gray-600">Serial Range</th>
-                        <th class="p-3 text-sm font-bold text-gray-600 text-right">Action</th>
+                        <th class="p-3 text-sm font-bold text-gray-600">Bonds Status</th>
+                        <th class="p-3 text-sm font-bold text-gray-600 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($stacks as $stack)
-                    <tr class="border-b hover:bg-gray-50 transition">
-                        <td class="p-3 font-medium">{{ $stack->stack_name }}</td>
-                        <td class="p-3 text-gray-600">{{ $stack->start_serial }} - {{ $stack->end_serial }}</td>
-                        <td class="p-3 text-right">
-                            <a href="/stacks/export/{{ $stack->id }}" class="inline-block bg-green-500 text-white px-4 py-1 rounded text-sm font-bold hover:bg-green-600">
-                                Download Excel
+                    <tr class="border-b hover:bg-blue-50/50 transition">
+                        <td class="p-3 font-semibold">
+                            <a href="{{ route('stacks.show', $stack->id) }}" class="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5 font-bold">
+                                <span>📁</span>
+                                <span>{{ $stack->stack_name }}</span>
                             </a>
+                        </td>
+                        <td class="p-3 text-gray-600 font-mono text-sm">{{ $stack->start_serial }} - {{ $stack->end_serial }}</td>
+                        <td class="p-3">
+                            <div class="flex flex-wrap gap-1.5 items-center">
+                                <span class="bg-blue-50 text-blue-700 border border-blue-200 text-xs px-2 py-0.5 rounded font-bold">
+                                    {{ $stack->bonds_count }} سند
+                                </span>
+                                @if(($stack->cancelled_count ?? 0) > 0)
+                                    <span class="bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2 py-0.5 rounded font-bold">
+                                        {{ $stack->cancelled_count }} ملغي
+                                    </span>
+                                @endif
+                                @if(($stack->missing_count ?? 0) > 0)
+                                    <span class="bg-red-50 text-red-700 border border-red-200 text-xs px-2 py-0.5 rounded font-bold">
+                                        {{ $stack->missing_count }} مفقود
+                                    </span>
+                                @endif
+                            </div>
+                        </td>
+                        <td class="p-3 text-right">
+                            <div class="inline-flex items-center gap-2">
+                                <a href="{{ route('stacks.show', $stack->id) }}" class="inline-flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-md text-xs font-bold hover:bg-blue-700 shadow-sm transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                    عرض السندات
+                                </a>
+                                <a href="/stacks/export/{{ $stack->id }}" class="inline-flex items-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded-md text-xs font-bold hover:bg-green-700 shadow-sm transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    Excel
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="3" class="p-8 text-center text-gray-400 italic">No stacks created yet. Digitized bonds first!</td>
+                        <td colspan="4" class="p-8 text-center text-gray-400 italic">No stacks created yet. Digitized bonds first!</td>
                     </tr>
                     @endforelse
                 </tbody>

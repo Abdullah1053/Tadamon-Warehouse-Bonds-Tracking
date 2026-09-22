@@ -81,10 +81,76 @@
                 </div>
 
                 <div class="col-span-1 md:col-span-2">
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Bond Link / Image (رابط السند أو الصورة)</label>
-                    <input type="text" name="bond_link" value="{{ $bond->bond_link }}"
-                        class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-orange-400 focus:bg-white transition"
-                        placeholder="https://... or link to bond image">
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Bond Photo / Image (صورة السند الورقي)</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-orange-400 transition bg-gray-50/50" id="editImageDropzone">
+                        <input type="file" name="bond_image" id="edit_bond_image" accept="image/*" class="hidden" onchange="previewEditImage(this)">
+                        <input type="hidden" name="remove_image" id="remove_image_input" value="0">
+
+                        @if($bond->hasImage())
+                            <!-- Current Image Display -->
+                            <div id="currentImageCard" class="mb-3 flex items-center justify-between bg-white p-3 rounded-lg border shadow-sm">
+                                <div class="flex items-center gap-3">
+                                    <a href="{{ $bond->image_url }}" target="_blank" class="block">
+                                        <img src="{{ $bond->image_url }}" alt="Current Bond Image" class="w-16 h-16 object-cover rounded border hover:opacity-80 transition">
+                                    </a>
+                                    <div class="text-left">
+                                        <div class="text-xs font-bold text-gray-800">الصورة الحالية المرتبطة</div>
+                                        <a href="{{ $bond->image_url }}" target="_blank" class="text-[11px] text-blue-600 hover:underline">
+                                            عرض بالحجم الكامل ↗
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="document.getElementById('edit_bond_image').click()" 
+                                            class="text-xs font-bold text-orange-600 hover:text-orange-800 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-md transition">
+                                        🔄 استبدال الصورة
+                                    </button>
+                                    <button type="button" onclick="markImageForRemoval()" 
+                                            class="text-xs font-bold text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition">
+                                        ✕ حذف الصورة
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Upload prompt (shown if no image or replacing) -->
+                        <div id="editUploadPrompt" class="{{ $bond->hasImage() ? 'hidden' : '' }} cursor-pointer" onclick="document.getElementById('edit_bond_image').click()">
+                            <div class="text-3xl mb-1">📷</div>
+                            <div class="text-sm font-bold text-gray-700">اضغط هنا لاختيار صورة السند أو اسحبها إلى هنا</div>
+                            <div class="text-xs text-gray-400 mt-1">يدعم JPG, PNG, WEBP (حتى 15 ميجابايت)</div>
+                        </div>
+
+                        <!-- New Selected Image Preview -->
+                        <div id="editImagePreviewContainer" class="hidden flex items-center justify-between bg-white p-2.5 rounded-lg border border-orange-300 shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <img id="editImagePreviewImg" src="" alt="New Preview" class="w-16 h-16 object-cover rounded border">
+                                <div class="text-left">
+                                    <span class="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">صورة جديدة</span>
+                                    <div id="editImagePreviewName" class="text-xs font-bold text-gray-800 truncate max-w-xs mt-0.5"></div>
+                                    <div id="editImagePreviewDimensions" class="text-[11px] text-gray-400"></div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="cancelEditImageSelection()" class="text-xs font-bold text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition">
+                                ✕ إلغاء الاختيار
+                            </button>
+                        </div>
+
+                        <!-- Notice if marked for removal -->
+                        <div id="removalNotice" class="hidden bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-lg text-xs font-bold flex justify-between items-center">
+                            <span>⚠️ تم تحديد الصورة للحذف عند حفظ السجل.</span>
+                            <button type="button" onclick="cancelImageRemoval()" class="text-blue-600 hover:underline">تراجع</button>
+                        </div>
+
+                        <!-- Optional external URL toggle -->
+                        <div class="mt-2 text-right">
+                            <button type="button" onclick="toggleEditUrlInput()" class="text-[11px] text-blue-600 hover:underline">
+                                أو تعديل الرابط الخارجي (External Link)
+                            </button>
+                            <input type="text" name="bond_link" id="edit_field_bond_link" value="{{ $bond->bond_link }}"
+                                class="hidden mt-1.5 w-full border border-gray-300 p-2 rounded-lg text-xs"
+                                placeholder="https://... رابط صورة خارجي">
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -289,5 +355,69 @@
             saveBtn.innerText = 'UPDATE RECORD';
         }
     };
+
+    // Image Upload & Removal Helpers
+    function previewEditImage(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('editImagePreviewImg').src = e.target.result;
+                document.getElementById('editImagePreviewName').textContent = file.name;
+                document.getElementById('editImagePreviewDimensions').textContent = (file.size / 1024).toFixed(1) + ' KB';
+                document.getElementById('editImagePreviewContainer').classList.remove('hidden');
+                document.getElementById('editUploadPrompt').classList.add('hidden');
+                document.getElementById('remove_image_input').value = '0';
+                const removalNotice = document.getElementById('removalNotice');
+                if (removalNotice) removalNotice.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function cancelEditImageSelection() {
+        const input = document.getElementById('edit_bond_image');
+        if (input) input.value = '';
+        const previewContainer = document.getElementById('editImagePreviewContainer');
+        if (previewContainer) previewContainer.classList.add('hidden');
+        
+        const currentCard = document.getElementById('currentImageCard');
+        const prompt = document.getElementById('editUploadPrompt');
+        if (currentCard && !currentCard.classList.contains('hidden')) {
+            // Keep current card shown
+        } else {
+            if (prompt) prompt.classList.remove('hidden');
+        }
+    }
+
+    function markImageForRemoval() {
+        document.getElementById('remove_image_input').value = '1';
+        const currentCard = document.getElementById('currentImageCard');
+        if (currentCard) currentCard.classList.add('hidden');
+        const removalNotice = document.getElementById('removalNotice');
+        if (removalNotice) removalNotice.classList.remove('hidden');
+        const prompt = document.getElementById('editUploadPrompt');
+        if (prompt) prompt.classList.remove('hidden');
+    }
+
+    function cancelImageRemoval() {
+        document.getElementById('remove_image_input').value = '0';
+        const currentCard = document.getElementById('currentImageCard');
+        if (currentCard) currentCard.classList.remove('hidden');
+        const removalNotice = document.getElementById('removalNotice');
+        if (removalNotice) removalNotice.classList.add('hidden');
+        const prompt = document.getElementById('editUploadPrompt');
+        if (prompt) prompt.classList.add('hidden');
+    }
+
+    function toggleEditUrlInput() {
+        const urlInput = document.getElementById('edit_field_bond_link');
+        if (urlInput) {
+            urlInput.classList.toggle('hidden');
+            if (!urlInput.classList.contains('hidden')) {
+                urlInput.focus();
+            }
+        }
+    }
 </script>
 @endsection

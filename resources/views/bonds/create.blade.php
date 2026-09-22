@@ -81,9 +81,40 @@
                 </div>
 
                 <div class="col-span-1 md:col-span-2">
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Bond Link / Image (رابط السند أو الصورة)</label>
-                    <input type="text" name="bond_link" id="field_bond_link" class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-400 focus:bg-white transition"
-                        placeholder="https://... or link to bond image">
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Bond Photo / Image (صورة السند الورقي)</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-blue-400 transition bg-gray-50/50" id="imageDropzone">
+                        <input type="file" name="bond_image" id="field_bond_image" accept="image/*" class="hidden" onchange="previewSelectedImage(this)">
+                        
+                        <!-- Upload prompt -->
+                        <div id="uploadPrompt" class="cursor-pointer" onclick="document.getElementById('field_bond_image').click()">
+                            <div class="text-3xl mb-1">📷</div>
+                            <div class="text-sm font-bold text-gray-700">اضغط هنا لاختيار صورة السند أو اسحبها إلى هنا</div>
+                            <div class="text-xs text-gray-400 mt-1">يدعم JPG, PNG, WEBP (حتى 15 ميجابايت)</div>
+                        </div>
+
+                        <!-- Image Preview -->
+                        <div id="imagePreviewContainer" class="hidden flex items-center justify-between bg-white p-2.5 rounded-lg border shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <img id="imagePreviewImg" src="" alt="Bond Preview" class="w-16 h-16 object-cover rounded border">
+                                <div class="text-left">
+                                    <div id="imagePreviewName" class="text-xs font-bold text-gray-800 truncate max-w-xs"></div>
+                                    <div id="imagePreviewDimensions" class="text-[11px] text-gray-400"></div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="clearSelectedImage()" class="text-xs font-bold text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-md transition">
+                                ✕ إزالة الصورة
+                            </button>
+                        </div>
+
+                        <!-- Optional external URL toggle -->
+                        <div class="mt-2 text-right">
+                            <button type="button" onclick="toggleUrlInput()" class="text-[11px] text-blue-600 hover:underline">
+                                أو إدخال رابط خارجي (External Link)
+                            </button>
+                            <input type="text" name="bond_link" id="field_bond_link" class="hidden mt-1.5 w-full border border-gray-300 p-2 rounded-lg text-xs"
+                                placeholder="https://... رابط صورة خارجي إن وجد">
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -398,6 +429,9 @@
             const form = document.getElementById('bondForm');
             form.reset();
 
+            // Clear image preview
+            clearSelectedImage();
+
             // Set next serial & keep date
             document.querySelector('input[name="date"]').value = savedDate;
             document.getElementById('bond_serial').value = result.next_serial;
@@ -414,6 +448,41 @@
                     <td class="border text-center"><button type="button" onclick="removeRow(this)" class="text-red-500 font-bold hover:text-red-700 p-1">✕</button></td>
                 </tr>`;
             rowIdx = 1;
+        }
+
+        // Image Preview & Upload Helpers
+        function previewSelectedImage(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreviewImg').src = e.target.result;
+                    document.getElementById('imagePreviewName').textContent = file.name;
+                    document.getElementById('imagePreviewDimensions').textContent = (file.size / 1024).toFixed(1) + ' KB';
+                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                    document.getElementById('uploadPrompt').classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearSelectedImage() {
+            const input = document.getElementById('field_bond_image');
+            if (input) input.value = '';
+            const previewContainer = document.getElementById('imagePreviewContainer');
+            if (previewContainer) previewContainer.classList.add('hidden');
+            const prompt = document.getElementById('uploadPrompt');
+            if (prompt) prompt.classList.remove('hidden');
+        }
+
+        function toggleUrlInput() {
+            const urlInput = document.getElementById('field_bond_link');
+            if (urlInput) {
+                urlInput.classList.toggle('hidden');
+                if (!urlInput.classList.contains('hidden')) {
+                    urlInput.focus();
+                }
+            }
         }
 
         // Live serial update for button labels
