@@ -55,9 +55,13 @@ class StackExport implements FromCollection, WithHeadings, WithMapping, WithStyl
 
     public function map($bond): array
     {
-        $itemsString = $bond->is_missing 
-            ? "--- سند مفقود ---" 
-            : $bond->items->map(fn($i) => "{$i->item_description} × {$i->quantity}")->implode("\n");
+        if ($bond->received_from === 'ملغي' || $bond->operation_name === 'ملغي') {
+            $itemsString = "--- سند ملغي ---";
+        } elseif ($bond->is_missing || $bond->received_from === 'مفقود') {
+            $itemsString = "--- سند مفقود ---";
+        } else {
+            $itemsString = $bond->items->map(fn($i) => "{$i->item_description} × {$i->quantity}")->implode("\n");
+        }
 
         return [
             $bond->date,

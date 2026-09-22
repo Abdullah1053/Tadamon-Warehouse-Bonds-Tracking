@@ -11,8 +11,9 @@
         <div class="flex items-center gap-8">
             <h1 class="font-bold text-xl tracking-tight">WAREHOUSE PRO</h1>
             <div class="flex gap-4 text-sm font-medium">
-                <a href="{{ route('dashboard') }}" class="hover:text-blue-200 transition">Stacking Dashboard</a>
-                <a href="{{ route('bonds.index') }}" class="hover:text-blue-200 transition">Bonds Archive</a>
+                <a href="{{ route('dashboard') }}" class="hover:text-blue-200 transition {{ request()->routeIs('dashboard') ? 'text-white font-semibold underline underline-offset-4' : 'text-blue-100' }}">Stacking Dashboard</a>
+                <a href="{{ route('bonds.index') }}" class="hover:text-blue-200 transition {{ request()->routeIs('bonds.index') ? 'text-white font-semibold underline underline-offset-4' : 'text-blue-100' }}">Bonds Archive</a>
+                <a href="{{ route('receivers.normalize') }}" class="hover:text-blue-200 transition {{ request()->routeIs('receivers.*') ? 'text-white font-semibold underline underline-offset-4' : 'text-blue-100' }}">Normalize Receivers</a>
             </div>
         </div>
         <div>

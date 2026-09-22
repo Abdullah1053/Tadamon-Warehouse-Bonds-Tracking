@@ -27,29 +27,61 @@ class BondController extends Controller
         $defaultDate = $lastBond ? $lastBond->date : date('Y-m-d');
 
         // dd($nextSerial);
-        // 4. Fetch unique receiver names for the datalist
+        // 4. Fetch unique receiver names for the datalist (exclude cancelled & missing placeholders)
         $receivers = Bond::where('received_from', '!=', '--- N/A ---')
+            ->where('received_from', '!=', 'مفقود')
+            ->where('received_from', '!=', 'ملغي')
+            ->where('received_from', '!=', '')
+            ->whereNotNull('received_from')
             ->select('received_from')
             ->distinct()
             ->orderBy('received_from', 'asc')
             ->pluck('received_from');
 
-            // 2. Fetch unique item descriptions for suggestions
-    $itemSuggestions = BondItem::distinct()
-        ->orderBy('item_description', 'asc')
-        ->pluck('item_description');
+        // 2. Fetch unique item descriptions for suggestions
+        $itemSuggestions = BondItem::distinct()
+            ->orderBy('item_description', 'asc')
+            ->pluck('item_description');
+
         // 5. Return view with all variables defined
-    return view('bonds.create', compact('nextSerial', 'defaultDate', 'receivers', 'itemSuggestions'));
+        return view('bonds.create', compact('nextSerial', 'defaultDate', 'receivers', 'itemSuggestions'));
     }
 
 
     public function store(Request $request)
     {
         return DB::transaction(function () use ($request) {
-            $bond = Bond::create($request->all());
+            $data = $request->all();
 
-            // Only add items if it's not a missing bond and items exist
-            if (!$request->is_missing && $request->has('items')) {
+            $isCancelled = $request->input('bond_type') === 'cancelled' 
+                || $request->input('received_from') === 'ملغي'
+                || $request->input('operation_name') === 'ملغي';
+
+            $isMissing = (bool) $request->input('is_missing')
+                || $request->input('bond_type') === 'missing'
+                || $request->input('received_from') === 'مفقود'
+                || $request->input('operation_name') === 'مفقود';
+
+            if ($isCancelled) {
+                $data['operation_name'] = 'ملغي';
+                $data['received_from'] = 'ملغي';
+                $data['note'] = 'ملغي';
+                $data['car_number'] = null;
+                $data['is_missing'] = 0; // Physical copy is still attached
+            } elseif ($isMissing) {
+                $data['operation_name'] = 'مفقود';
+                $data['received_from'] = 'مفقود';
+                $data['note'] = 'مفقود';
+                $data['car_number'] = null;
+                $data['is_missing'] = 1; // Physical paper is cut off
+            } else {
+                $data['is_missing'] = 0;
+            }
+
+            $bond = Bond::create($data);
+
+            // Only add items if it's a normal bond (not cancelled and not missing)
+            if (!$isCancelled && !$isMissing && $request->has('items')) {
                 foreach ($request->items as $item) {
                     if (!empty($item['description'])) {
                         $bond->items()->create([
@@ -62,13 +94,12 @@ class BondController extends Controller
             $currentSerial = $request->bond_serial; // e.g., "03154"
             $nextNumber = (int) $currentSerial + 1;
             $formattedNext = str_pad($nextNumber, strlen($currentSerial), '0', STR_PAD_LEFT);
-            
 
             return response()->json([
-            'success' => true, 
-            'next_serial' => $formattedNext,
-            'saved_date'  => $bond->date // Send the date back to keep the form consistent
-        ]);
+                'success' => true, 
+                'next_serial' => $formattedNext,
+                'saved_date'  => $bond->date // Send the date back to keep the form consistent
+            ]);
         });
     }
 
@@ -136,22 +167,42 @@ class BondController extends Controller
                 'operation_name',
                 'received_from',
                 'car_number',
-                'note', // Added
+                'note',
                 'bond_link'
             ]);
 
-            // 2. Handle Checkbox logic (is_missing)
-            // If the checkbox is in the request, it's true (1), otherwise false (0)
-            $data['is_missing'] = $request->has('is_missing') ? 1 : 0;
+            $isCancelled = $request->input('bond_type') === 'cancelled' 
+                || $request->input('received_from') === 'ملغي'
+                || $request->input('operation_name') === 'ملغي';
 
-            // 3. Update Header
+            $isMissing = (bool) $request->input('is_missing')
+                || $request->input('bond_type') === 'missing'
+                || $request->input('received_from') === 'مفقود'
+                || $request->input('operation_name') === 'مفقود';
+
+            if ($isCancelled) {
+                $data['operation_name'] = 'ملغي';
+                $data['received_from'] = 'ملغي';
+                $data['note'] = 'ملغي';
+                $data['car_number'] = null;
+                $data['is_missing'] = 0; // Physical copy is still attached
+            } elseif ($isMissing) {
+                $data['operation_name'] = 'مفقود';
+                $data['received_from'] = 'مفقود';
+                $data['note'] = 'مفقود';
+                $data['car_number'] = null;
+                $data['is_missing'] = 1; // Physical paper is cut off
+            } else {
+                $data['is_missing'] = 0;
+            }
+
+            // 2. Update Header
             $bond->update($data);
 
-            // 4. Sync Items
-            // We only sync items if the bond is NOT marked as missing
+            // 3. Sync Items (Only for normal bonds)
             $bond->items()->delete();
 
-            if (!$data['is_missing'] && $request->has('items')) {
+            if (!$isCancelled && !$isMissing && $request->has('items')) {
                 foreach ($request->items as $item) {
                     if (!empty($item['description'])) {
                         $bond->items()->create([

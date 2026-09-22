@@ -19,7 +19,46 @@ protected $fillable = [
     'car_number',
     'is_missing'
 ];
-public function items() { return $this->hasMany(BondItem::class); }
-public function stack() { return $this->belongsTo(Stack::class); }
+    public function items() { return $this->hasMany(BondItem::class); }
+    public function stack() { return $this->belongsTo(Stack::class); }
 
+    /**
+     * Check if the bond is cancelled (physical paper is attached, but voided).
+     */
+    public function isCancelled(): bool
+    {
+        return $this->received_from === 'ملغي' 
+            || $this->operation_name === 'ملغي' 
+            || $this->note === 'ملغي';
+    }
+
+    /**
+     * Check if the bond is missing (physically cut off / missing from stack).
+     */
+    public function isMissing(): bool
+    {
+        return (bool) $this->is_missing 
+            || $this->received_from === 'مفقود' 
+            || $this->operation_name === 'مفقود';
+    }
+
+    /**
+     * Get normalized status key ('cancelled', 'missing', 'normal').
+     */
+    public function getStatusAttribute(): string
+    {
+        if ($this->isMissing()) return 'missing';
+        if ($this->isCancelled()) return 'cancelled';
+        return 'normal';
+    }
+
+    /**
+     * Get Arabic label for status.
+     */
+    public function getStatusLabelAttribute(): string
+    {
+        if ($this->isMissing()) return 'مفقود';
+        if ($this->isCancelled()) return 'ملغي';
+        return 'سليم';
+    }
 }

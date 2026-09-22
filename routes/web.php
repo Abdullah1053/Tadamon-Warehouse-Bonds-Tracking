@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BondController;
 use App\Http\Controllers\StackController;
+use App\Http\Controllers\ReceiverNormalizationController;
 
 // Dashboard (The single entry point)
 Route::get('/', [StackController::class, 'index'])->name('dashboard');
@@ -24,3 +25,10 @@ Route::post('/stacks/create', [StackController::class, 'createStack'])->name('st
 Route::post('/stacks/bulk-assign', [StackController::class, 'bulkAssign'])->name('stacks.bulkAssign');
 Route::get('/stacks/export-all', [StackController::class, 'exportAll'])->name('stacks.exportAll');
 Route::get('/stacks/export/{stack}', [StackController::class, 'export'])->name('stacks.export');
+
+// Receiver Normalization & Deduplication
+Route::get('/receivers/normalize', [ReceiverNormalizationController::class, 'index'])->name('receivers.normalize');
+Route::get('/receivers/api/clusters', [ReceiverNormalizationController::class, 'clustersApi'])->name('receivers.api.clusters');
+Route::get('/receivers/api/preview', [ReceiverNormalizationController::class, 'preview'])->name('receivers.api.preview');
+Route::post('/receivers/merge', [ReceiverNormalizationController::class, 'merge'])->name('receivers.merge');
+Route::post('/receivers/merge-custom', [ReceiverNormalizationController::class, 'mergeCustom'])->name('receivers.mergeCustom');

@@ -12,6 +12,16 @@
         </div>
     </div>
 
+    @if ($bond->isCancelled())
+        <div class="p-3 mb-6 bg-amber-100 text-amber-900 border-2 border-amber-300 rounded-lg text-center font-bold">
+            ⚠️ هذا السند ملغي (النسخة الورقية موجودة بالدفتر)
+        </div>
+    @elseif ($bond->isMissing())
+        <div class="p-3 mb-6 bg-red-100 text-red-900 border-2 border-red-300 rounded-lg text-center font-bold">
+            ✂️ هذا السند مفقود (النسخة الورقية مقطوعة من الدفتر وغير موجودة)
+        </div>
+    @endif
+
     <div class="grid grid-cols-2 gap-y-4 mb-8">
         <div class="text-sm"><strong>Operation:</strong> {{ $bond->operation_name }}</div>
         <div class="text-sm"><strong>Vehicle:</strong> {{ $bond->car_number ?? 'N/A' }}</div>

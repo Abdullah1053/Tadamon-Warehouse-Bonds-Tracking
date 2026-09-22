@@ -30,16 +30,32 @@
             @foreach ($unassignedBonds as $bond)
                 <tr class="border-b hover:bg-yellow-50" id="row-{{ $bond->id }}">
                     <td class="p-3"><input type="checkbox" class="bond-checkbox" value="{{ $bond->id }}"></td>
-                    <td class="p-3 font-bold {{ $bond->is_missing ? 'text-red-600' : 'text-blue-600' }}">
+                    <td class="p-3 font-bold {{ $bond->isMissing() ? 'text-red-600' : ($bond->isCancelled() ? 'text-amber-600' : 'text-blue-600') }}">
                         #{{ $bond->bond_serial }}
-                        @if ($bond->is_missing)
-                            <span class="text-[10px] uppercase">[Missing]</span>
+                        @if ($bond->isMissing())
+                            <span class="bg-red-100 text-red-700 border border-red-200 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase">مفقود</span>
+                        @elseif ($bond->isCancelled())
+                            <span class="bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase">ملغي</span>
                         @endif
                     </td>
 
-                    <td class="p-3">{{ $bond->received_from }}</td>
+                    <td class="p-3">
+                        @if($bond->isMissing())
+                            <span class="text-red-600 font-bold">مفقود</span>
+                        @elseif($bond->isCancelled())
+                            <span class="text-amber-700 font-bold">ملغي</span>
+                        @else
+                            {{ $bond->received_from }}
+                        @endif
+                    </td>
                     <td class="p-3">{{ $bond->operation_name }}</td>
-                    <td class="p-3 text-gray-400">{{ $bond->items->count() }} items</td>
+                    <td class="p-3 text-gray-400">
+                        @if($bond->isMissing() || $bond->isCancelled())
+                            <span class="text-gray-300 text-xs">-</span>
+                        @else
+                            {{ $bond->items->count() }} items
+                        @endif
+                    </td>
                     <td class="p-3">
                         @if ($bond->bond_link)
                             <a href="{{ $bond->bond_link }}" target="_blank" class="text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1">🔗 Link</a>

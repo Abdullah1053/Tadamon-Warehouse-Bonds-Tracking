@@ -15,16 +15,26 @@
         <tbody class="text-sm">
             @foreach ($assignedBonds as $bond)
                 <tr class="border-b hover:bg-gray-50">
-                    <td class="p-3 font-bold {{ $bond->is_missing ? 'text-red-600' : 'text-blue-600' }}">
+                    <td class="p-3 font-bold {{ $bond->isMissing() ? 'text-red-600' : ($bond->isCancelled() ? 'text-amber-600' : 'text-blue-600') }}">
                         #{{ $bond->bond_serial }}
-                        @if ($bond->is_missing)
-                            <span class="text-[10px] uppercase">[Missing]</span>
+                        @if ($bond->isMissing())
+                            <span class="bg-red-100 text-red-700 border border-red-200 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase">مفقود</span>
+                        @elseif ($bond->isCancelled())
+                            <span class="bg-amber-100 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase">ملغي</span>
                         @endif
                     </td>
                     <td class="p-3"><span
                             class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">{{ $bond->stack->stack_name }}</span>
                     </td>
-                    <td class="p-3 text-gray-600">{{ $bond->received_from }}</td>
+                    <td class="p-3 font-medium">
+                        @if($bond->isMissing())
+                            <span class="text-red-600 font-bold">مفقود</span>
+                        @elseif($bond->isCancelled())
+                            <span class="text-amber-700 font-bold">ملغي</span>
+                        @else
+                            <span class="text-gray-600">{{ $bond->received_from }}</span>
+                        @endif
+                    </td>
                     <td class="p-3">
                         @if ($bond->bond_link)
                             <a href="{{ $bond->bond_link }}" target="_blank" class="text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1">🔗 Link</a>
