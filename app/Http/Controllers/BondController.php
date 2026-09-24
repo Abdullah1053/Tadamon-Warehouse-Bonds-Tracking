@@ -365,9 +365,11 @@ class BondController extends Controller
      */
     public function bulkUpload(Request $request)
     {
+        @set_time_limit(180);
+
         $request->validate([
             'images' => 'required|array|min:1',
-            'images.*' => 'file|mimes:jpg,jpeg,png,webp,pdf|max:20480',
+            'images.*' => 'file|mimes:jpg,jpeg,png,webp,avif,pdf|max:20480',
             'stack_id' => 'nullable|exists:stacks,id'
         ]);
 

@@ -64,7 +64,7 @@
                  class="border-3 border-dashed border-gray-300 hover:border-blue-500 rounded-2xl p-8 text-center bg-gray-50/70 hover:bg-blue-50/30 transition cursor-pointer"
                  onclick="document.getElementById('fileInput').click()">
                 
-                <input type="file" id="fileInput" multiple accept="image/*" class="hidden" onchange="handleFilesSelected(this.files)">
+                <input type="file" id="fileInput" multiple accept="image/*,.avif,.pdf" class="hidden" onchange="handleFilesSelected(this.files)">
                 
                 <div class="max-w-md mx-auto space-y-2">
                     <div class="text-5xl">📁</div>
@@ -242,6 +242,53 @@ function clearStaging() {
     document.getElementById('thumbnailsGrid').innerHTML = '';
 }
 
+function uploadBatchChunk(formData, onProgress) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '{{ route("bonds.bulkUpload") }}', true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.setRequestHeader('Accept', 'application/json');
+
+        if (onProgress && xhr.upload) {
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    onProgress(e.loaded, e.total);
+                }
+            };
+        }
+
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    resolve(data);
+                } catch (parseErr) {
+                    reject(new Error('استجابة غير صالحة من الخادم.'));
+                }
+            } else {
+                let msg = 'فشلت عملية الرفع.';
+                try {
+                    const errRes = JSON.parse(xhr.responseText);
+                    if (errRes.message) msg = errRes.message;
+                    if (errRes.errors) {
+                        const firstKey = Object.keys(errRes.errors)[0];
+                        if (firstKey && errRes.errors[firstKey][0]) {
+                            msg = errRes.errors[firstKey][0];
+                        }
+                    }
+                } catch (e) {}
+                reject(new Error(msg));
+            }
+        };
+
+        xhr.onerror = function() {
+            reject(new Error('حدث خطأ في الاتصال بالشبكة أثناء الرفع.'));
+        };
+
+        xhr.send(formData);
+    });
+}
+
 async function startBulkUpload() {
     if (stagedFiles.length === 0) {
         alert('يرجى اختيار صور أولاً.');
@@ -250,7 +297,6 @@ async function startBulkUpload() {
 
     const startBtn = document.getElementById('startUploadBtn');
     startBtn.disabled = true;
-    startBtn.innerHTML = `<span>⏳</span><span>جاري الرفع... (${stagedFiles.length})</span>`;
 
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
@@ -258,67 +304,81 @@ async function startBulkUpload() {
     const progressStatus = document.getElementById('progressStatus');
     
     progressContainer.classList.remove('hidden');
-    progressBar.style.width = '10%';
-    progressPercent.textContent = '10%';
-    progressStatus.textContent = `جاري إرسال ${stagedFiles.length} ملف إلى الخادم...`;
 
-    const formData = new FormData();
-    formData.append('_token', '{{ csrf_token() }}');
-    
+    // BATCH_SIZE = 15 ensures we NEVER exceed PHP's default max_file_uploads (20)
+    // or request post_max_size limits on servers!
+    const BATCH_SIZE = 15;
+    const totalFiles = stagedFiles.length;
+    const totalBatches = Math.ceil(totalFiles / BATCH_SIZE);
+
+    const aggregatedData = {
+        total_count: 0,
+        matched_count: 0,
+        unmatched_count: 0,
+        details: []
+    };
+
     const stackId = document.getElementById('targetStack').value;
-    if (stackId) {
-        formData.append('stack_id', stackId);
-    }
-
-    stagedFiles.forEach(file => {
-        formData.append('images[]', file);
-    });
+    const csrfToken = '{{ csrf_token() }}';
 
     try {
-        // XMLHttpRequest to track upload progress
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '{{ route("bonds.bulkUpload") }}', true);
-        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-        xhr.setRequestHeader('Accept', 'application/json');
+        for (let bIndex = 0; bIndex < totalBatches; bIndex++) {
+            const startIdx = bIndex * BATCH_SIZE;
+            const endIdx = Math.min(startIdx + BATCH_SIZE, totalFiles);
+            const batchFiles = stagedFiles.slice(startIdx, endIdx);
 
-        xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-                const percent = Math.round((e.loaded / e.total) * 90);
-                progressBar.style.width = percent + '%';
-                progressPercent.textContent = percent + '%';
+            const batchLabel = totalBatches > 1 
+                ? `الدفعة ${bIndex + 1} من ${totalBatches} (الصور ${startIdx + 1} إلى ${endIdx} من ${totalFiles})`
+                : `${totalFiles} صورة`;
+
+            startBtn.innerHTML = `<span>⏳</span><span>جاري الرفع... (${startIdx}/${totalFiles})</span>`;
+            progressStatus.textContent = `جاري رفع ومعالجة ${batchLabel}...`;
+
+            const batchFormData = new FormData();
+            batchFormData.append('_token', csrfToken);
+            if (stackId) {
+                batchFormData.append('stack_id', stackId);
             }
-        };
+            batchFiles.forEach(file => {
+                batchFormData.append('images[]', file);
+            });
 
-        xhr.onload = function() {
-            startBtn.disabled = false;
-            startBtn.innerHTML = `<span>🚀</span><span>بدء رفع وربط الصور الآن</span>`;
+            // Upload this batch with smooth progress calculation
+            const batchResult = await uploadBatchChunk(batchFormData, (loaded, total) => {
+                const batchBase = (bIndex / totalBatches) * 100;
+                const batchFraction = (loaded / total) * (100 / totalBatches);
+                const overallPercent = Math.min(99, Math.round(batchBase + batchFraction));
+                progressBar.style.width = overallPercent + '%';
+                progressPercent.textContent = overallPercent + '%';
+            });
 
-            if (xhr.status >= 200 && xhr.status < 300) {
-                progressBar.style.width = '100%';
-                progressPercent.textContent = '100%';
-                progressStatus.textContent = 'اكتملت المعالجة بنجاح!';
-                
-                const data = JSON.parse(xhr.responseText);
-                displayResults(data);
-            } else {
-                alert('فشلت عملية الرفع. تفقد حجم الملفات أو اتصال الخادم.');
-                console.error(xhr.responseText);
+            aggregatedData.total_count += batchResult.total_count || batchFiles.length;
+            aggregatedData.matched_count += batchResult.matched_count || 0;
+            aggregatedData.unmatched_count += batchResult.unmatched_count || 0;
+            if (batchResult.details && Array.isArray(batchResult.details)) {
+                aggregatedData.details.push(...batchResult.details);
             }
-        };
 
-        xhr.onerror = function() {
-            startBtn.disabled = false;
-            startBtn.innerHTML = `<span>🚀</span><span>بدء رفع وربط الصور الآن</span>`;
-            alert('حدث خطأ في الشبكة أثناء رفع الصور.');
-        };
+            const currentPercent = Math.round(((bIndex + 1) / totalBatches) * 100);
+            progressBar.style.width = currentPercent + '%';
+            progressPercent.textContent = currentPercent + '%';
+        }
 
-        xhr.send(formData);
+        // All batches finished
+        progressBar.style.width = '100%';
+        progressPercent.textContent = '100%';
+        progressStatus.textContent = `اكتمل رفع ومعالجة جميع الصور (${totalFiles}) بنجاح!`;
+
+        startBtn.disabled = false;
+        startBtn.innerHTML = `<span>🚀</span><span>بدء رفع وربط الصور الآن</span>`;
+
+        displayResults(aggregatedData);
 
     } catch (err) {
         console.error(err);
         startBtn.disabled = false;
         startBtn.innerHTML = `<span>🚀</span><span>بدء رفع وربط الصور الآن</span>`;
-        alert('حدث خطأ غير متوقع.');
+        alert(err.message || 'حدث خطأ أثناء رفع الصور.');
     }
 }
 
