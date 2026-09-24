@@ -2,7 +2,6 @@
 
 namespace App\Exports;
 
-use App\Models\Stack;
 use App\Models\Bond;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -15,31 +14,27 @@ class AllStacksExport
 {
     /**
      * Generate the complete Spreadsheet following the design pattern of
-     * 'مجموع تقارير السندات.xlsx', sorted chronologically from oldest to newest:
+     * 'مجموع تقارير السندات.xlsx', with ALL bonds strictly arranged chronologically
+     * by bond date from oldest to newest across all stacks:
      * - Background color covers the entire row based on year.
      * - Items and Quantities each have their own dedicated column.
      * - Multi-item bonds use merged parent cells creating an inner table structure.
      * - Dedicated bond image link column.
+     * - Sheet1 provides a chronological summary by year.
      */
     public function buildSpreadsheet(): Spreadsheet
     {
-        // 1. Fetch all stacks with bonds and items
-        $stacks = Stack::with(['bonds.items'])->get();
-
-        // 2. Sort stacks chronologically by earliest non-empty date (oldest to newest)
-        $sortedStacks = $stacks->sortBy(function ($stack) {
-            $earliestDate = $stack->bonds
-                ->whereNotNull('date')
-                ->filter(fn($b) => trim($b->date) !== '' && $b->date !== '0000-00-00')
-                ->min('date');
-
-            return $earliestDate ?? '9999-12-31';
-        })->values();
+        // 1. Fetch all bonds directly ordered by bond date (oldest to newest)
+        $bonds = Bond::with(['items', 'stack'])
+            ->orderBy('date', 'asc')
+            ->orderBy('bond_serial', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
 
         $spreadsheet = new Spreadsheet();
         
         // -------------------------------------------------------------
-        // Main Sheet: Worksheet
+        // Main Sheet: Worksheet (Strictly ordered by bond date)
         // -------------------------------------------------------------
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Worksheet');
@@ -62,7 +57,7 @@ class AllStacksExport
 
         // Row 2: Title Row (A2:H2 Merged)
         $sheet->mergeCells('A2:H2');
-        $sheet->setCellValue('A2', 'مجموع تقارير السندات');
+        $sheet->setCellValue('A2', 'مجموع تقارير السندات (مرتبة حسب تاريخ السند)');
         $sheet->getRowDimension(2)->setRowHeight(40);
         $sheet->getStyle('A2:H2')->applyFromArray([
             'font' => [
@@ -159,135 +154,146 @@ class AllStacksExport
             ],
         ];
 
-        // Summary data for Sheet1
-        $summaryData = [];
+        // Grouping stats for Sheet1
+        $yearStats = [];
 
-        foreach ($sortedStacks as $stackIdx => $stack) {
-            // Sort bonds inside the stack by ID/serial
-            $bonds = $stack->bonds->sortBy('id')->values();
+        foreach ($bonds as $bond) {
+            $year = !empty($bond->date) ? substr(trim($bond->date), 0, 4) : '';
+            $bgYearColor = $yearColors[$year] ?? 'F8F9FA';
 
-            if ($bonds->isEmpty()) {
-                continue;
+            // Track year stats for Sheet1
+            if ($year !== '') {
+                if (!isset($yearStats[$year])) {
+                    $yearStats[$year] = [
+                        'count' => 0,
+                        'min_date' => $bond->date,
+                        'max_date' => $bond->date,
+                    ];
+                }
+                $yearStats[$year]['count']++;
+                $yearStats[$year]['max_date'] = $bond->date;
             }
 
-            $stackStartRow = $currentRow;
+            $fullUrl = $bond->image_url ?? '';
+            $items = $bond->items;
 
-            // Track min/max for Sheet1 index
-            $firstBond = $bonds->first();
-            $lastBond = $bonds->last();
-            $summaryData[] = [
-                'first_date' => $firstBond->date,
-                'first_serial' => (string)$firstBond->bond_serial,
-                'last_date' => $lastBond->date,
-                'last_serial' => (string)$lastBond->bond_serial,
-            ];
+            $isCancelled = ($bond->received_from === 'ملغي' || $bond->operation_name === 'ملغي');
+            $isMissing = ($bond->is_missing || $bond->received_from === 'مفقود');
 
-            foreach ($bonds as $bond) {
-                $year = !empty($bond->date) ? substr(trim($bond->date), 0, 4) : '';
-                $bgYearColor = $yearColors[$year] ?? 'F8F9FA';
-
-                $fullUrl = $bond->image_url ?? '';
-                $items = $bond->items;
-
-                $isCancelled = ($bond->received_from === 'ملغي' || $bond->operation_name === 'ملغي');
-                $isMissing = ($bond->is_missing || $bond->received_from === 'مفقود');
-
-                if ($isCancelled) {
-                    $itemRows = [['desc' => '--- سند ملغي ---', 'qty' => '---']];
-                } elseif ($isMissing) {
-                    $itemRows = [['desc' => '--- سند مفقود ---', 'qty' => '---']];
-                } elseif ($items->isEmpty()) {
-                    $itemRows = [['desc' => '---', 'qty' => '']];
-                } else {
-                    $itemRows = [];
-                    foreach ($items as $it) {
-                        $itemRows[] = [
-                            'desc' => $it->item_description ?? '',
-                            'qty' => $it->quantity ?? ''
-                        ];
-                    }
+            if ($isCancelled) {
+                $itemRows = [['desc' => '--- سند ملغي ---', 'qty' => '---']];
+            } elseif ($isMissing) {
+                $itemRows = [['desc' => '--- سند مفقود ---', 'qty' => '---']];
+            } elseif ($items->isEmpty()) {
+                $itemRows = [['desc' => '---', 'qty' => '']];
+            } else {
+                $itemRows = [];
+                foreach ($items as $it) {
+                    $itemRows[] = [
+                        'desc' => $it->item_description ?? '',
+                        'qty' => $it->quantity ?? ''
+                    ];
                 }
-
-                $rowCount = count($itemRows);
-                $bondStartRow = $currentRow;
-                $bondEndRow = $currentRow + $rowCount - 1;
-
-                // 1. Populate item descriptions & quantities into their dedicated columns E and F
-                foreach ($itemRows as $idx => $it) {
-                    $r = $bondStartRow + $idx;
-                    $sheet->setCellValue("E{$r}", $it['desc']);
-                    $sheet->setCellValueExplicit("F{$r}", (string)$it['qty'], DataType::TYPE_STRING);
-                }
-
-                // 2. Populate common bond fields on bondStartRow
-                $sheet->setCellValueExplicit("A{$bondStartRow}", $bond->date ?? '', DataType::TYPE_STRING);
-                $sheet->setCellValueExplicit("B{$bondStartRow}", (string)$bond->bond_serial, DataType::TYPE_STRING);
-                $sheet->setCellValue("C{$bondStartRow}", $bond->operation_name ?? '');
-                $sheet->setCellValue("D{$bondStartRow}", $bond->received_from ?? '');
-                $sheet->setCellValue("G{$bondStartRow}", $bond->note ?? '');
-                $sheet->setCellValue("H{$bondStartRow}", !empty($fullUrl) ? $fullUrl : '---');
-
-                // 3. If multiple items, merge common fields vertically (creates the inner table effect)
-                if ($rowCount > 1) {
-                    $sheet->mergeCells("A{$bondStartRow}:A{$bondEndRow}");
-                    $sheet->mergeCells("B{$bondStartRow}:B{$bondEndRow}");
-                    $sheet->mergeCells("C{$bondStartRow}:C{$bondEndRow}");
-                    $sheet->mergeCells("D{$bondStartRow}:D{$bondEndRow}");
-                    $sheet->mergeCells("G{$bondStartRow}:G{$bondEndRow}");
-                    $sheet->mergeCells("H{$bondStartRow}:H{$bondEndRow}");
-                }
-
-                // 4. Background color covers the ENTIRE row/block (all rows & all columns A..H)
-                $sheet->getStyle("A{$bondStartRow}:H{$bondEndRow}")->applyFromArray([
-                    'fill' => [
-                        'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => $bgYearColor],
-                    ]
-                ]);
-
-                // 5. Clickable hyperlinks on Serial (Col B) and Link (Col H)
-                if (!empty($fullUrl)) {
-                    $cellB = "B{$bondStartRow}";
-                    $sheet->getCell($cellB)->getHyperlink()->setUrl($fullUrl);
-                    $sheet->getCell($cellB)->getHyperlink()->setTooltip('عرض صورة السند: ' . $bond->bond_serial);
-                    $sheet->getStyle($cellB)->applyFromArray($hyperlinkStyle);
-
-                    $cellH = "H{$bondStartRow}";
-                    $sheet->getCell($cellH)->getHyperlink()->setUrl($fullUrl);
-                    $sheet->getCell($cellH)->getHyperlink()->setTooltip('فتح صورة السند');
-                    $sheet->getStyle($cellH)->applyFromArray($hyperlinkStyle);
-                }
-
-                $currentRow = $bondEndRow + 1;
             }
 
-            // Apply data borders and alignment in bulk for performance
-            $stackEndRow = $currentRow - 1;
-            if ($stackEndRow >= $stackStartRow) {
-                $sheet->getStyle("A{$stackStartRow}:H{$stackEndRow}")->applyFromArray($dataBorders);
+            $rowCount = count($itemRows);
+            $bondStartRow = $currentRow;
+            $bondEndRow = $currentRow + $rowCount - 1;
+
+            // 1. Populate item descriptions & quantities into their dedicated columns E and F
+            foreach ($itemRows as $idx => $it) {
+                $r = $bondStartRow + $idx;
+                $sheet->setCellValue("E{$r}", $it['desc']);
+                $sheet->setCellValueExplicit("F{$r}", (string)$it['qty'], DataType::TYPE_STRING);
             }
 
-            // Empty separator row between stacks (matching reference file)
-            if ($stackIdx < count($sortedStacks) - 1) {
-                $currentRow++;
+            // 2. Populate common bond fields on bondStartRow
+            $sheet->setCellValueExplicit("A{$bondStartRow}", $bond->date ?? '', DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit("B{$bondStartRow}", (string)$bond->bond_serial, DataType::TYPE_STRING);
+            $sheet->setCellValue("C{$bondStartRow}", $bond->operation_name ?? '');
+            $sheet->setCellValue("D{$bondStartRow}", $bond->received_from ?? '');
+            $sheet->setCellValue("G{$bondStartRow}", $bond->note ?? '');
+            $sheet->setCellValue("H{$bondStartRow}", !empty($fullUrl) ? $fullUrl : '---');
+
+            // 3. If multiple items, merge common fields vertically (creates inner table effect)
+            if ($rowCount > 1) {
+                $sheet->mergeCells("A{$bondStartRow}:A{$bondEndRow}");
+                $sheet->mergeCells("B{$bondStartRow}:B{$bondEndRow}");
+                $sheet->mergeCells("C{$bondStartRow}:C{$bondEndRow}");
+                $sheet->mergeCells("D{$bondStartRow}:D{$bondEndRow}");
+                $sheet->mergeCells("G{$bondStartRow}:G{$bondEndRow}");
+                $sheet->mergeCells("H{$bondStartRow}:H{$bondEndRow}");
             }
+
+            // 4. Background color covers the ENTIRE row (all columns A..H)
+            $sheet->getStyle("A{$bondStartRow}:H{$bondEndRow}")->applyFromArray([
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => $bgYearColor],
+                ]
+            ]);
+
+            // 5. Clickable hyperlinks on Serial (Col B) and Link (Col H)
+            if (!empty($fullUrl)) {
+                $cellB = "B{$bondStartRow}";
+                $sheet->getCell($cellB)->getHyperlink()->setUrl($fullUrl);
+                $sheet->getCell($cellB)->getHyperlink()->setTooltip('عرض صورة السند: ' . $bond->bond_serial);
+                $sheet->getStyle($cellB)->applyFromArray($hyperlinkStyle);
+
+                $cellH = "H{$bondStartRow}";
+                $sheet->getCell($cellH)->getHyperlink()->setUrl($fullUrl);
+                $sheet->getCell($cellH)->getHyperlink()->setTooltip('فتح صورة السند');
+                $sheet->getStyle($cellH)->applyFromArray($hyperlinkStyle);
+            }
+
+            $currentRow = $bondEndRow + 1;
+        }
+
+        // Apply data borders and alignment across the entire table
+        $totalDataEndRow = $currentRow - 1;
+        if ($totalDataEndRow >= 5) {
+            $sheet->getStyle("A5:H{$totalDataEndRow}")->applyFromArray($dataBorders);
         }
 
         // -------------------------------------------------------------
-        // Secondary Sheet: Sheet1 (Chronological Index matching reference)
+        // Secondary Sheet: Sheet1 (Chronological Summary by Year)
         // -------------------------------------------------------------
         $sheet1 = $spreadsheet->createSheet();
         $sheet1->setTitle('Sheet1');
         $sheet1->setRightToLeft(true);
 
-        $s1Row = 3;
-        foreach ($summaryData as $sum) {
-            $sheet1->setCellValueExplicit("C{$s1Row}", $sum['first_date'] ?? '', DataType::TYPE_STRING);
-            $sheet1->setCellValueExplicit("D{$s1Row}", $sum['first_serial'] ?? '', DataType::TYPE_STRING);
-            $s1Row++;
-            $sheet1->setCellValueExplicit("C{$s1Row}", $sum['last_date'] ?? '', DataType::TYPE_STRING);
-            $sheet1->setCellValueExplicit("D{$s1Row}", $sum['last_serial'] ?? '', DataType::TYPE_STRING);
-            $s1Row += 5; // Spacing matching the reference Sheet1 pattern
+        $sheet1->getColumnDimension('A')->setWidth(15);
+        $sheet1->getColumnDimension('B')->setWidth(20);
+        $sheet1->getColumnDimension('C')->setWidth(20);
+        $sheet1->getColumnDimension('D')->setWidth(18);
+
+        $sheet1->setCellValue('A2', 'السنة');
+        $sheet1->setCellValue('B2', 'تاريخ أول سند');
+        $sheet1->setCellValue('C2', 'تاريخ آخر سند');
+        $sheet1->setCellValue('D2', 'عدد السندات');
+
+        $sheet1->getStyle('A2:D2')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+        ]);
+
+        $sRow = 3;
+        ksort($yearStats);
+        foreach ($yearStats as $yr => $st) {
+            $sheet1->setCellValue("A{$sRow}", $yr);
+            $sheet1->setCellValue("B{$sRow}", $st['min_date']);
+            $sheet1->setCellValue("C{$sRow}", $st['max_date']);
+            $sheet1->setCellValue("D{$sRow}", $st['count']);
+
+            $yrColor = $yearColors[$yr] ?? 'F8F9FA';
+            $sheet1->getStyle("A{$sRow}:D{$sRow}")->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $yrColor]],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+            ]);
+            $sRow++;
         }
 
         // Set Worksheet as active sheet
