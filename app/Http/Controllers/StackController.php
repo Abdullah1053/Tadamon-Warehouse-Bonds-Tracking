@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Exports\StackExport;
+use App\Exports\AllStacksExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Stack;
 use App\Models\Bond;
@@ -142,4 +143,27 @@ class StackController extends Controller
         ])->deleteFileAfterSend(true);
     }
 
+    /**
+     * Export all stacks in a single Excel file arranged by date (oldest to newest),
+     * following the exact design pattern of 'مجموع تقارير السندات.xlsx'.
+     */
+    public function exportAllSingleExcel()
+    {
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
+
+        $stacksCount = Stack::has('bonds')->count();
+        if ($stacksCount === 0) {
+            return back()->with('error', 'لا توجد دفاتر سندات للتصدير.');
+        }
+
+        $export = new AllStacksExport();
+        $tempFilePath = $export->exportToTempFile();
+
+        $fileName = 'مجموع تقارير السندات.xlsx';
+
+        return response()->download($tempFilePath, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
+    }
 }

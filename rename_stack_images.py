@@ -73,25 +73,33 @@ def parse_sql_data(sql_path, folder_identifier):
     folder_clean = str(folder_identifier).strip()
     is_id = folder_clean.isdigit()
 
-    for sm in stack_matches:
-        s_id, s_name, start_s, end_s = sm
-        s_name_clean = s_name.strip("'") if s_name != 'NULL' else ''
-        if is_id and int(s_id) == int(folder_clean):
-            matched_stack = {
-                'id': int(s_id),
-                'name': s_name_clean,
-                'start_serial': int(start_s),
-                'end_serial': int(end_s)
-            }
-            break
-        elif s_name_clean == folder_clean:
-            matched_stack = {
-                'id': int(s_id),
-                'name': s_name_clean,
-                'start_serial': int(start_s),
-                'end_serial': int(end_s)
-            }
-            break
+    # Pass 1: Match by numeric ID first (if identifier is digits)
+    if is_id:
+        for sm in stack_matches:
+            s_id, s_name, start_s, end_s = sm
+            s_name_clean = s_name.strip("'") if s_name != 'NULL' else ''
+            if int(s_id) == int(folder_clean):
+                matched_stack = {
+                    'id': int(s_id),
+                    'name': s_name_clean,
+                    'start_serial': int(start_s),
+                    'end_serial': int(end_s)
+                }
+                break
+
+    # Pass 2: Match by exact stack_name if not matched by ID
+    if not matched_stack:
+        for sm in stack_matches:
+            s_id, s_name, start_s, end_s = sm
+            s_name_clean = s_name.strip("'") if s_name != 'NULL' else ''
+            if s_name_clean == folder_clean:
+                matched_stack = {
+                    'id': int(s_id),
+                    'name': s_name_clean,
+                    'start_serial': int(start_s),
+                    'end_serial': int(end_s)
+                }
+                break
 
     if not matched_stack:
         raise ValueError(f"Stack with identifier '{folder_identifier}' not found in {sql_path}")

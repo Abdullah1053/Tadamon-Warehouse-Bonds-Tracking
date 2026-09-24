@@ -28,6 +28,7 @@ Route::get('/stacks/{stack}', [StackController::class, 'show'])->name('stacks.sh
 Route::post('/stacks/create', [StackController::class, 'createStack'])->name('stacks.create');
 Route::post('/stacks/bulk-assign', [StackController::class, 'bulkAssign'])->name('stacks.bulkAssign');
 Route::get('/stacks/export-all', [StackController::class, 'exportAll'])->name('stacks.exportAll');
+Route::get('/stacks/export-all-excel', [StackController::class, 'exportAllSingleExcel'])->name('stacks.exportAllExcel');
 Route::get('/stacks/export/{stack}', [StackController::class, 'export'])->name('stacks.export');
 
 // Receiver Normalization & Deduplication
