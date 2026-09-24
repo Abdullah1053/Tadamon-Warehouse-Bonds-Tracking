@@ -49,7 +49,7 @@ class AllStacksExport
             'E' => 50.00, // المواد والأدوات (اسم الصنف / المادة)
             'F' => 14.00, // الكمية
             'G' => 45.00, // ملاحظات
-            'H' => 40.00, // رابط السند
+            'H' => 45.00, // رابط السند
         ];
         foreach ($colWidths as $col => $width) {
             $sheet->getColumnDimension($col)->setWidth($width);
@@ -141,7 +141,6 @@ class AllStacksExport
             'font' => [
                 'name' => 'Calibri',
                 'size' => 11,
-                'color' => ['rgb' => '000000'],
             ],
         ];
 
@@ -153,6 +152,8 @@ class AllStacksExport
                 'underline' => true,
             ],
         ];
+
+        $hyperlinkRanges = [];
 
         // Grouping stats for Sheet1
         $yearStats = [];
@@ -213,7 +214,14 @@ class AllStacksExport
             $sheet->setCellValue("C{$bondStartRow}", $bond->operation_name ?? '');
             $sheet->setCellValue("D{$bondStartRow}", $bond->received_from ?? '');
             $sheet->setCellValue("G{$bondStartRow}", $bond->note ?? '');
-            $sheet->setCellValue("H{$bondStartRow}", !empty($fullUrl) ? $fullUrl : '---');
+
+            if (!empty($fullUrl)) {
+                $escapedUrl = str_replace('"', '""', $fullUrl);
+                // Set formula =HYPERLINK("url", "url") so Excel immediately recognizes it as an active clickable hyperlink
+                $sheet->setCellValue("H{$bondStartRow}", '=HYPERLINK("' . $escapedUrl . '", "' . $escapedUrl . '")');
+            } else {
+                $sheet->setCellValue("H{$bondStartRow}", '---');
+            }
 
             // 3. If multiple items, merge common fields vertically (creates inner table effect)
             if ($rowCount > 1) {
@@ -233,17 +241,13 @@ class AllStacksExport
                 ]
             ]);
 
-            // 5. Clickable hyperlinks on Serial (Col B) and Link (Col H)
+            // 5. Setup clickable hyperlinks on Link (Col H)
             if (!empty($fullUrl)) {
-                $cellB = "B{$bondStartRow}";
-                $sheet->getCell($cellB)->getHyperlink()->setUrl($fullUrl);
-                $sheet->getCell($cellB)->getHyperlink()->setTooltip('عرض صورة السند: ' . $bond->bond_serial);
-                $sheet->getStyle($cellB)->applyFromArray($hyperlinkStyle);
-
-                $cellH = "H{$bondStartRow}";
-                $sheet->getCell($cellH)->getHyperlink()->setUrl($fullUrl);
-                $sheet->getCell($cellH)->getHyperlink()->setTooltip('فتح صورة السند');
-                $sheet->getStyle($cellH)->applyFromArray($hyperlinkStyle);
+                for ($r = $bondStartRow; $r <= $bondEndRow; $r++) {
+                    $sheet->getCell("H{$r}")->getHyperlink()->setUrl($fullUrl);
+                    $sheet->getCell("H{$r}")->getHyperlink()->setTooltip('عرض صورة السند: ' . $fullUrl);
+                }
+                $hyperlinkRanges[] = "H{$bondStartRow}:H{$bondEndRow}";
             }
 
             $currentRow = $bondEndRow + 1;
@@ -253,6 +257,11 @@ class AllStacksExport
         $totalDataEndRow = $currentRow - 1;
         if ($totalDataEndRow >= 5) {
             $sheet->getStyle("A5:H{$totalDataEndRow}")->applyFromArray($dataBorders);
+        }
+
+        // Apply Hyperlink styles AFTER dataBorders so font color (#0563C1) and underline are preserved
+        foreach ($hyperlinkRanges as $hRange) {
+            $sheet->getStyle($hRange)->applyFromArray($hyperlinkStyle);
         }
 
         // -------------------------------------------------------------
