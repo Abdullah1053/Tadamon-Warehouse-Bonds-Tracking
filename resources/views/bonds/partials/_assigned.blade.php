@@ -37,7 +37,7 @@
                     </td>
                     <td class="p-3">
                         @if ($bond->bond_link)
-                            <a href="{{ $bond->bond_link }}" target="_blank" class="text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1">🔗 Link</a>
+                            <a href="{{ $bond->image_url }}" target="_blank" class="text-blue-600 hover:underline text-xs font-semibold inline-flex items-center gap-1">🔗 Link</a>
                         @else
                             <span class="text-gray-300 text-xs">-</span>
                         @endif

@@ -63,6 +63,8 @@ class StackExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             $itemsString = $bond->items->map(fn($i) => "{$i->item_description} × {$i->quantity}")->implode("\n");
         }
 
+        $fullUrl = $bond->image_url ?? '';
+
         return [
             $bond->date,
             $bond->bond_serial,
@@ -70,7 +72,7 @@ class StackExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             $bond->received_from,
             $itemsString,
             $bond->note ?? '---',
-            $bond->bond_link ?? '',
+            $fullUrl,
         ];
     }
 
@@ -140,10 +142,11 @@ class StackExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                 $bonds = $this->bonds ?? $this->stack->bonds()->get();
                 $currentRow = 3; // Data rows begin at Row 3 (Row 1: Title, Row 2: Headings)
                 foreach ($bonds as $bond) {
-                    if (!empty($bond->bond_link)) {
+                    $url = $bond->image_url;
+                    if (!empty($url)) {
                         $cellCoord = "G{$currentRow}";
-                        $sheet->getCell($cellCoord)->getHyperlink()->setUrl($bond->bond_link);
-                        $sheet->getCell($cellCoord)->getHyperlink()->setTooltip('عرض صورة السند');
+                        $sheet->getCell($cellCoord)->getHyperlink()->setUrl($url);
+                        $sheet->getCell($cellCoord)->getHyperlink()->setTooltip('عرض صورة السند: ' . $url);
 
                         $sheet->getStyle($cellCoord)->applyFromArray([
                             'font' => [

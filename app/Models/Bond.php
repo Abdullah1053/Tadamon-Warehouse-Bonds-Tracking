@@ -75,7 +75,18 @@ protected $fillable = [
             return $this->bond_link;
         }
 
-        return asset(ltrim($this->bond_link, '/'));
+        $cleanPath = ltrim($this->bond_link, '/');
+
+        // When accessed via HTTP request, use the incoming scheme & host so it points to the real server domain/IP
+        try {
+            if (app()->bound('request') && request() && request()->hasHeader('host')) {
+                return request()->schemeAndHttpHost() . '/' . $cleanPath;
+            }
+        } catch (\Throwable $e) {
+            // fallback
+        }
+
+        return url($cleanPath);
     }
 
     /**
