@@ -24,12 +24,12 @@ Route::put('/bonds/{bond}', [BondController::class, 'update'])->name('bonds.upda
 
 
 // Stack & Export Actions
-Route::get('/stacks/{stack}', [StackController::class, 'show'])->name('stacks.show');
+Route::get('/stacks/export-all-excel', [StackController::class, 'exportAllSingleExcel'])->name('stacks.exportAllExcel');
+Route::get('/stacks/export-all', [StackController::class, 'exportAll'])->name('stacks.exportAll');
+Route::get('/stacks/export/{stack}', [StackController::class, 'export'])->name('stacks.export');
 Route::post('/stacks/create', [StackController::class, 'createStack'])->name('stacks.create');
 Route::post('/stacks/bulk-assign', [StackController::class, 'bulkAssign'])->name('stacks.bulkAssign');
-Route::get('/stacks/export-all', [StackController::class, 'exportAll'])->name('stacks.exportAll');
-Route::get('/stacks/export-all-excel', [StackController::class, 'exportAllSingleExcel'])->name('stacks.exportAllExcel');
-Route::get('/stacks/export/{stack}', [StackController::class, 'export'])->name('stacks.export');
+Route::get('/stacks/{stack}', [StackController::class, 'show'])->name('stacks.show')->whereNumber('stack');
 
 // Receiver Normalization & Deduplication
 Route::get('/receivers/normalize', [ReceiverNormalizationController::class, 'index'])->name('receivers.normalize');
