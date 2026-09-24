@@ -116,15 +116,56 @@ class AllStacksExport
         // Row 4: Empty separator row
         $sheet->getRowDimension(4)->setRowHeight(25);
 
-        // Year color palette for entire row background
-        $yearColors = [
-            '2020' => 'D9E1F2', // Light Blue (explicitly requested)
-            '2021' => 'E0F7FA', // Soft Cyan / Teal
-            '2022' => 'E2EFDA', // Soft Sage Green
-            '2023' => 'FFF2CC', // Soft Warm Gold / Amber
-            '2024' => 'EDE2FE', // Soft Lavender / Purple
-            '2025' => 'FCE4D6', // Soft Peach / Rose
-            '2026' => 'D5F5E3', // Soft Mint Green
+        // Year color families with alternating shades (shade_1: lighter, shade_2: slightly darker)
+        $yearPalettes = [
+            '2020' => [
+                'name'    => 'Sky Blue',
+                'shade_1' => 'E8F4FD', // Light sky-blue
+                'shade_2' => 'D0E8F9', // Slightly darker sky-blue
+                'base'    => 'D9EBF8', // Summary sheet base
+            ],
+            '2021' => [
+                'name'    => 'Apple Green',
+                'shade_1' => 'EEF9EB', // Light apple-green
+                'shade_2' => 'D6F2CF', // Slightly darker apple-green
+                'base'    => 'E2F5DC',
+            ],
+            '2022' => [
+                'name'    => 'Warm Amber / Gold',
+                'shade_1' => 'FFF9E6', // Light warm amber/gold
+                'shade_2' => 'FEEEC2', // Slightly darker amber/gold
+                'base'    => 'FEF3D4',
+            ],
+            '2023' => [
+                'name'    => 'Lavender / Purple',
+                'shade_1' => 'F5EEFD', // Light lavender
+                'shade_2' => 'E5D4FA', // Slightly darker lavender
+                'base'    => 'EDE1FB',
+            ],
+            '2024' => [
+                'name'    => 'Peach / Coral',
+                'shade_1' => 'FFF2EB', // Light peach
+                'shade_2' => 'FFDFD0', // Slightly darker peach/coral
+                'base'    => 'FFE8DD',
+            ],
+            '2025' => [
+                'name'    => 'Mint / Soft Teal',
+                'shade_1' => 'E6F8F5', // Light mint/teal
+                'shade_2' => 'C9EFE9', // Slightly darker mint/teal
+                'base'    => 'D8F3EF',
+            ],
+            '2026' => [
+                'name'    => 'Soft Rose / Mauve',
+                'shade_1' => 'FDF0F3', // Light rose blush
+                'shade_2' => 'F8D8DF', // Slightly darker rose
+                'base'    => 'FBE4E9',
+            ],
+        ];
+
+        // Fallback palette rotation for any unexpected year
+        $fallbackPalettes = [
+            ['shade_1' => 'F8F9FA', 'shade_2' => 'EDF2F7', 'base' => 'E2E8F0'],
+            ['shade_1' => 'F0F4F8', 'shade_2' => 'D9E2EC', 'base' => 'BCCCDC'],
         ];
 
         // Data Rows & Styling Tokens
@@ -153,33 +194,87 @@ class AllStacksExport
             ],
         ];
 
+        // Missing document font styling (bold dark red warning text)
+        $missingFont = [
+            'font' => [
+                'name' => 'Calibri',
+                'bold' => true,
+                'size' => 11,
+                'color' => ['rgb' => '9C0006'],
+            ],
+        ];
+
         $hyperlinkRanges = [];
+        $missingRanges = [];
+        $yearDataBlocks = [];
+
+        $previousYear = null;
+        $bondIndexInYear = 0;
+        $yearStartRow = 5;
 
         // Grouping stats for Sheet1
         $yearStats = [];
 
         foreach ($bonds as $bond) {
-            $year = !empty($bond->date) ? substr(trim($bond->date), 0, 4) : '';
-            $bgYearColor = $yearColors[$year] ?? 'F8F9FA';
+            $year = !empty($bond->date) ? substr(trim($bond->date), 0, 4) : 'Unknown';
 
-            // Track year stats for Sheet1
-            if ($year !== '') {
-                if (!isset($yearStats[$year])) {
-                    $yearStats[$year] = [
-                        'count' => 0,
-                        'min_date' => $bond->date,
-                        'max_date' => $bond->date,
-                    ];
-                }
-                $yearStats[$year]['count']++;
-                $yearStats[$year]['max_date'] = $bond->date;
+            // 1. Visual separation between years: insert a blank spacer row when year changes
+            if ($previousYear !== null && $year !== $previousYear) {
+                $yearDataBlocks[] = [
+                    'start' => $yearStartRow,
+                    'end'   => $currentRow - 1,
+                    'year'  => $previousYear,
+                ];
+
+                // Clear blank spacer row between the two years (no fill, no borders)
+                $spacerRow = $currentRow;
+                $sheet->getRowDimension($spacerRow)->setRowHeight(20);
+                $currentRow++;
+
+                // Reset year start row and alternating bond index for the new year
+                $yearStartRow = $currentRow;
+                $bondIndexInYear = 0;
+            }
+
+            $previousYear = $year;
+
+            // Track stats for Sheet1
+            if (!isset($yearStats[$year])) {
+                $yearStats[$year] = [
+                    'count'     => 0,
+                    'missing'   => 0,
+                    'cancelled' => 0,
+                    'normal'    => 0,
+                    'min_date'  => $bond->date,
+                    'max_date'  => $bond->date,
+                ];
+            }
+            $yearStats[$year]['count']++;
+            $yearStats[$year]['max_date'] = $bond->date;
+
+            $isMissing = $bond->isMissing();
+            $isCancelled = $bond->isCancelled();
+
+            if ($isMissing) {
+                $yearStats[$year]['missing']++;
+            } elseif ($isCancelled) {
+                $yearStats[$year]['cancelled']++;
+            } else {
+                $yearStats[$year]['normal']++;
+            }
+
+            // Determine row background color:
+            // If missing, use high-visibility warning highlight (Soft Alert Red)
+            // Otherwise, alternate between shade_1 and shade_2 of the current year's palette
+            $palette = $yearPalettes[$year] ?? $fallbackPalettes[abs(crc32($year)) % count($fallbackPalettes)];
+            if ($isMissing) {
+                $rowBgColor = 'FFC7CE'; // High-visibility Warning Red
+            } else {
+                $rowBgColor = ($bondIndexInYear % 2 === 0) ? $palette['shade_1'] : $palette['shade_2'];
             }
 
             $fullUrl = $bond->image_url ?? '';
             $items = $bond->items;
-
-            $isCancelled = ($bond->received_from === 'ملغي' || $bond->operation_name === 'ملغي');
-            $isMissing = ($bond->is_missing || $bond->received_from === 'مفقود');
 
             if ($isCancelled) {
                 $itemRows = [['desc' => '--- سند ملغي ---', 'qty' => '---']];
@@ -237,9 +332,14 @@ class AllStacksExport
             $sheet->getStyle("A{$bondStartRow}:H{$bondEndRow}")->applyFromArray([
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => $bgYearColor],
+                    'startColor' => ['rgb' => $rowBgColor],
                 ]
             ]);
+
+            // Track missing records for special font styling (bold dark red text)
+            if ($isMissing) {
+                $missingRanges[] = "A{$bondStartRow}:H{$bondEndRow}";
+            }
 
             // 5. Setup clickable hyperlinks on Link (Col H)
             if (!empty($fullUrl)) {
@@ -250,13 +350,29 @@ class AllStacksExport
                 $hyperlinkRanges[] = "H{$bondStartRow}:H{$bondEndRow}";
             }
 
+            $bondIndexInYear++;
             $currentRow = $bondEndRow + 1;
         }
 
-        // Apply data borders and alignment across the entire table
-        $totalDataEndRow = $currentRow - 1;
-        if ($totalDataEndRow >= 5) {
-            $sheet->getStyle("A5:H{$totalDataEndRow}")->applyFromArray($dataBorders);
+        // Record the last year data block
+        if ($previousYear !== null) {
+            $yearDataBlocks[] = [
+                'start' => $yearStartRow,
+                'end'   => $currentRow - 1,
+                'year'  => $previousYear,
+            ];
+        }
+
+        // Apply data borders to each year block separately (keeps spacer rows cleanly blank and unbordered)
+        foreach ($yearDataBlocks as $block) {
+            if ($block['end'] >= $block['start']) {
+                $sheet->getStyle("A{$block['start']}:H{$block['end']}")->applyFromArray($dataBorders);
+            }
+        }
+
+        // Apply missing document special font styling (bold dark red text)
+        foreach ($missingRanges as $mRange) {
+            $sheet->getStyle($mRange)->applyFromArray($missingFont);
         }
 
         // Apply Hyperlink styles AFTER dataBorders so font color (#0563C1) and underline are preserved
@@ -272,37 +388,106 @@ class AllStacksExport
         $sheet1->setRightToLeft(true);
 
         $sheet1->getColumnDimension('A')->setWidth(15);
-        $sheet1->getColumnDimension('B')->setWidth(20);
-        $sheet1->getColumnDimension('C')->setWidth(20);
-        $sheet1->getColumnDimension('D')->setWidth(18);
+        $sheet1->getColumnDimension('B')->setWidth(18);
+        $sheet1->getColumnDimension('C')->setWidth(18);
+        $sheet1->getColumnDimension('D')->setWidth(16);
+        $sheet1->getColumnDimension('E')->setWidth(18);
+        $sheet1->getColumnDimension('F')->setWidth(18);
+        $sheet1->getColumnDimension('G')->setWidth(18);
 
-        $sheet1->setCellValue('A2', 'السنة');
-        $sheet1->setCellValue('B2', 'تاريخ أول سند');
-        $sheet1->setCellValue('C2', 'تاريخ آخر سند');
-        $sheet1->setCellValue('D2', 'عدد السندات');
+        $sheet1Headers = [
+            'A' => 'السنة',
+            'B' => 'تاريخ أول سند',
+            'C' => 'تاريخ آخر سند',
+            'D' => 'إجمالي السندات',
+            'E' => 'السندات المفقودة',
+            'F' => 'السندات الملغية',
+            'G' => 'السندات السليمة',
+        ];
+        $sheet1->getRowDimension(2)->setRowHeight(25);
+        foreach ($sheet1Headers as $col => $title) {
+            $sheet1->setCellValue("{$col}2", $title);
+        }
 
-        $sheet1->getStyle('A2:D2')->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+        $sheet1->getStyle('A2:G2')->applyFromArray([
+            'font' => ['name' => 'Calibri', 'bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
-            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
             'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
         ]);
 
         $sRow = 3;
         ksort($yearStats);
+        $totalBonds = 0;
+        $totalMissing = 0;
+        $totalCancelled = 0;
+        $totalNormal = 0;
+        $globalMinDate = null;
+        $globalMaxDate = null;
+
         foreach ($yearStats as $yr => $st) {
             $sheet1->setCellValue("A{$sRow}", $yr);
             $sheet1->setCellValue("B{$sRow}", $st['min_date']);
             $sheet1->setCellValue("C{$sRow}", $st['max_date']);
             $sheet1->setCellValue("D{$sRow}", $st['count']);
+            $sheet1->setCellValue("E{$sRow}", $st['missing']);
+            $sheet1->setCellValue("F{$sRow}", $st['cancelled']);
+            $sheet1->setCellValue("G{$sRow}", $st['normal']);
 
-            $yrColor = $yearColors[$yr] ?? 'F8F9FA';
-            $sheet1->getStyle("A{$sRow}:D{$sRow}")->applyFromArray([
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $yrColor]],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            $totalBonds += $st['count'];
+            $totalMissing += $st['missing'];
+            $totalCancelled += $st['cancelled'];
+            $totalNormal += $st['normal'];
+            if ($globalMinDate === null || $st['min_date'] < $globalMinDate) $globalMinDate = $st['min_date'];
+            if ($globalMaxDate === null || $st['max_date'] > $globalMaxDate) $globalMaxDate = $st['max_date'];
+
+            $p = $yearPalettes[$yr] ?? $fallbackPalettes[0];
+            $baseColor = $p['base'] ?? 'F8F9FA';
+
+            $sheet1->getStyle("A{$sRow}:G{$sRow}")->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $baseColor]],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+                'font' => ['name' => 'Calibri', 'size' => 11],
             ]);
+
+            // If year has missing bonds, highlight the missing count cell in red
+            if ($st['missing'] > 0) {
+                $sheet1->getStyle("E{$sRow}")->applyFromArray([
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFC7CE']],
+                    'font' => ['bold' => true, 'color' => ['rgb' => '9C0006']],
+                ]);
+            }
+
             $sRow++;
+        }
+
+        // Grand Total row at the bottom of Sheet1
+        $sheet1->setCellValue("A{$sRow}", 'المجموع الكلي');
+        $sheet1->setCellValue("B{$sRow}", $globalMinDate);
+        $sheet1->setCellValue("C{$sRow}", $globalMaxDate);
+        $sheet1->setCellValue("D{$sRow}", $totalBonds);
+        $sheet1->setCellValue("E{$sRow}", $totalMissing);
+        $sheet1->setCellValue("F{$sRow}", $totalCancelled);
+        $sheet1->setCellValue("G{$sRow}", $totalNormal);
+
+        $sheet1->getStyle("A{$sRow}:G{$sRow}")->applyFromArray([
+            'font' => ['name' => 'Calibri', 'bold' => true, 'size' => 11, 'color' => ['rgb' => '1F4E78']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9E1F2']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'borders' => [
+                'top' => ['borderStyle' => Border::BORDER_THIN],
+                'bottom' => ['borderStyle' => Border::BORDER_DOUBLE],
+                'left' => ['borderStyle' => Border::BORDER_THIN],
+                'right' => ['borderStyle' => Border::BORDER_THIN],
+            ],
+        ]);
+
+        if ($totalMissing > 0) {
+            $sheet1->getStyle("E{$sRow}")->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFC7CE']],
+                'font' => ['bold' => true, 'color' => ['rgb' => '9C0006']],
+            ]);
         }
 
         // Set Worksheet as active sheet
