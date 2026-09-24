@@ -15,7 +15,8 @@ class AllStacksExport
 {
     /**
      * Generate the complete Spreadsheet following the exact design pattern of
-     * 'مجموع تقارير السندات.xlsx', sorted chronologically from oldest to newest.
+     * 'مجموع تقارير السندات.xlsx', sorted chronologically from oldest to newest,
+     * with color-coded year timestamps and dedicated image link column.
      */
     public function buildSpreadsheet(): Spreadsheet
     {
@@ -41,7 +42,7 @@ class AllStacksExport
         $sheet->setTitle('Worksheet');
         $sheet->setRightToLeft(true);
 
-        // Column Widths matching 'مجموع تقارير السندات.xlsx'
+        // Column Widths matching 'مجموع تقارير السندات.xlsx' + Col I for Image Link
         $colWidths = [
             'A' => 15.11,
             'B' => 14.00,
@@ -51,16 +52,17 @@ class AllStacksExport
             'F' => 12.11,
             'G' => 9.66,
             'H' => 49.33,
+            'I' => 45.00,
         ];
         foreach ($colWidths as $col => $width) {
             $sheet->getColumnDimension($col)->setWidth($width);
         }
 
-        // Row 2: Title Row (A2:H2 Merged)
-        $sheet->mergeCells('A2:H2');
+        // Row 2: Title Row (A2:I2 Merged)
+        $sheet->mergeCells('A2:I2');
         $sheet->setCellValue('A2', 'مجموع تقارير السندات');
         $sheet->getRowDimension(2)->setRowHeight(40);
-        $sheet->getStyle('A2:H2')->applyFromArray([
+        $sheet->getStyle('A2:I2')->applyFromArray([
             'font' => [
                 'name' => 'Calibri',
                 'bold' => true,
@@ -87,13 +89,14 @@ class AllStacksExport
             'F' => 'الصنف',
             'G' => 'الكمية',
             'H' => 'ملاحظات',
+            'I' => 'رابط السند',
         ];
         $sheet->getRowDimension(3)->setRowHeight(25);
         foreach ($headers as $col => $title) {
             $sheet->setCellValue("{$col}3", $title);
         }
 
-        $sheet->getStyle('A3:H3')->applyFromArray([
+        $sheet->getStyle('A3:I3')->applyFromArray([
             'font' => [
                 'name' => 'Calibri',
                 'bold' => true,
@@ -116,6 +119,17 @@ class AllStacksExport
 
         // Row 4: Empty separator row
         $sheet->getRowDimension(4)->setRowHeight(25);
+
+        // Year color palette for timestamp cells (Column A)
+        $yearColors = [
+            '2020' => 'D9E1F2', // Light Blue (explicitly requested)
+            '2021' => 'E0F7FA', // Soft Cyan / Teal
+            '2022' => 'E2EFDA', // Soft Sage Green
+            '2023' => 'FFF2CC', // Soft Warm Gold / Amber
+            '2024' => 'EDE2FE', // Soft Lavender / Purple
+            '2025' => 'FCE4D6', // Soft Peach / Rose
+            '2026' => 'D5F5E3', // Soft Mint Green
+        ];
 
         // Data Rows & Styling Tokens
         $currentRow = 5;
@@ -179,6 +193,8 @@ class AllStacksExport
                     $itemsString = $bond->items->map(fn($i) => "{$i->item_description} × {$i->quantity}")->implode("\n");
                 }
 
+                $fullUrl = $bond->image_url ?? '';
+
                 // Explicit text writing to preserve leading zeros in serials
                 $sheet->setCellValueExplicit("A{$r}", $bond->date ?? '', DataType::TYPE_STRING);
                 $sheet->setCellValueExplicit("B{$r}", (string)$bond->bond_serial, DataType::TYPE_STRING);
@@ -188,14 +204,38 @@ class AllStacksExport
                 $sheet->setCellValue("F{$r}", ''); // Category placeholder matching template
                 $sheet->setCellValue("G{$r}", ''); // Quantity placeholder matching template
                 $sheet->setCellValue("H{$r}", $bond->note ?? '');
+                $sheet->setCellValue("I{$r}", !empty($fullUrl) ? $fullUrl : '---');
 
-                // Clickable bond image hyperlink on Serial number if image URL is available
-                $url = $bond->image_url;
-                if (!empty($url)) {
-                    $cellCoord = "B{$r}";
-                    $sheet->getCell($cellCoord)->getHyperlink()->setUrl($url);
-                    $sheet->getCell($cellCoord)->getHyperlink()->setTooltip('عرض صورة السند: ' . $bond->bond_serial);
-                    $sheet->getStyle($cellCoord)->applyFromArray($hyperlinkStyle);
+                // Color-code timestamp cell in Column A by year
+                $year = !empty($bond->date) ? substr(trim($bond->date), 0, 4) : '';
+                if (!empty($year) && isset($yearColors[$year])) {
+                    $sheet->getStyle("A{$r}")->applyFromArray([
+                        'fill' => [
+                            'fillType' => Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => $yearColors[$year]],
+                        ],
+                        'font' => [
+                            'name' => 'Calibri',
+                            'size' => 11,
+                            'bold' => true,
+                            'color' => ['rgb' => '1F3864'],
+                        ],
+                    ]);
+                }
+
+                // Clickable bond image hyperlinks on both Serial (Col B) and Bond Link (Col I)
+                if (!empty($fullUrl)) {
+                    // Serial number hyperlink
+                    $cellB = "B{$r}";
+                    $sheet->getCell($cellB)->getHyperlink()->setUrl($fullUrl);
+                    $sheet->getCell($cellB)->getHyperlink()->setTooltip('عرض صورة السند: ' . $bond->bond_serial);
+                    $sheet->getStyle($cellB)->applyFromArray($hyperlinkStyle);
+
+                    // Image Link column hyperlink
+                    $cellI = "I{$r}";
+                    $sheet->getCell($cellI)->getHyperlink()->setUrl($fullUrl);
+                    $sheet->getCell($cellI)->getHyperlink()->setTooltip('فتح صورة السند');
+                    $sheet->getStyle($cellI)->applyFromArray($hyperlinkStyle);
                 }
 
                 $currentRow++;
@@ -204,7 +244,7 @@ class AllStacksExport
             // Apply data borders and alignment in bulk for performance
             $stackEndRow = $currentRow - 1;
             if ($stackEndRow >= $stackStartRow) {
-                $sheet->getStyle("A{$stackStartRow}:H{$stackEndRow}")->applyFromArray($dataBorders);
+                $sheet->getStyle("A{$stackStartRow}:I{$stackEndRow}")->applyFromArray($dataBorders);
             }
 
             // Empty separator row between stacks (matching reference file)
