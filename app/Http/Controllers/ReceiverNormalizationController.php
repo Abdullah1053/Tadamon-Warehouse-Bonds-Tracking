@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Bond;
 use App\Services\ReceiverNormalizationService;
+use Illuminate\Support\Facades\Log;
 
 class ReceiverNormalizationController extends Controller
 {
@@ -83,17 +84,31 @@ class ReceiverNormalizationController extends Controller
             'variants.*' => 'required|string',
         ]);
 
-        $targetName = trim($request->input('target_name'));
-        $variants = $request->input('variants');
+        try {
+            $targetName = trim($request->input('target_name'));
+            $variants = $request->input('variants');
 
-        $updatedCount = $this->normalizationService->mergeVariants($targetName, $variants);
+            $updatedCount = $this->normalizationService->mergeVariants($targetName, $variants);
 
-        return response()->json([
-            'success' => true,
-            'target_name' => $targetName,
-            'updated_count' => $updatedCount,
-            'message' => "تم توحيد {$updatedCount} سند بنجاح تحت الاسم: \"{$targetName}\"",
-        ]);
+            return response()->json([
+                'success' => true,
+                'target_name' => $targetName,
+                'updated_count' => $updatedCount,
+                'message' => "تم توحيد {$updatedCount} سند بنجاح تحت الاسم: \"{$targetName}\"",
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('ReceiverNormalizationController::merge failed: ' . $e->getMessage(), [
+                'target_name' => $request->input('target_name'),
+                'variants' => $request->input('variants'),
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء دمج وتوحيد الأسماء: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -107,20 +122,36 @@ class ReceiverNormalizationController extends Controller
             'selected_names.*' => 'required|string',
         ]);
 
-        $targetName = trim($request->input('target_name'));
-        $selectedNames = $request->input('selected_names');
+        try {
+            $targetName = trim($request->input('target_name'));
+            $selectedNames = $request->input('selected_names');
 
-        $updatedCount = $this->normalizationService->mergeVariants($targetName, $selectedNames);
+            $updatedCount = $this->normalizationService->mergeVariants($targetName, $selectedNames);
 
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'target_name' => $targetName,
-                'updated_count' => $updatedCount,
-                'message' => "تم توحيد {$updatedCount} سند بنجاح تحت الاسم: \"{$targetName}\"",
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'target_name' => $targetName,
+                    'updated_count' => $updatedCount,
+                    'message' => "تم توحيد {$updatedCount} سند بنجاح تحت الاسم: \"{$targetName}\"",
+                ]);
+            }
+
+            return redirect()->route('receivers.normalize')->with('success', "تم توحيد {$updatedCount} سند بنجاح تحت الاسم: \"{$targetName}\"");
+        } catch (\Throwable $e) {
+            Log::error('ReceiverNormalizationController::mergeCustom failed: ' . $e->getMessage(), [
+                'target_name' => $request->input('target_name'),
+                'selected_names' => $request->input('selected_names'),
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
             ]);
-        }
 
-        return redirect()->route('receivers.normalize')->with('success', "تم توحيد {$updatedCount} سند بنجاح تحت الاسم: \"{$targetName}\"");
+            $errorMsg = 'حدث خطأ أثناء توحيد الأسماء: ' . $e->getMessage();
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $errorMsg], 500);
+            }
+
+            return redirect()->route('receivers.normalize')->with('error', $errorMsg);
+        }
     }
 }

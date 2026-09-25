@@ -8,6 +8,8 @@ use App\Exports\AllStacksExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Stack;
 use App\Models\Bond;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use ZipArchive;
 
 
@@ -73,25 +75,64 @@ class StackController extends Controller
     }
 
 
-    public function createStack(Request $request) {
-        $stack = Stack::create([
-            'stack_name'   => $request->stack_name,
-            'start_serial' => $request->start,
-            'end_serial'   => $request->end,
+    public function createStack(Request $request)
+    {
+        $request->validate([
+            'stack_name'   => 'required|string|max:255',
+            'start'        => 'required|numeric',
+            'end'          => 'required|numeric',
         ]);
 
-        Bond::whereBetween('bond_serial', [$request->start, $request->end])
-            ->update(['stack_id' => $stack->id]);
+        try {
+            return DB::transaction(function () use ($request) {
+                $stack = Stack::create([
+                    'stack_name'   => $request->stack_name,
+                    'start_serial' => $request->start,
+                    'end_serial'   => $request->end,
+                ]);
 
-        return back()->with('success', 'Stack created by range.');
+                Bond::whereBetween('bond_serial', [$request->start, $request->end])
+                    ->update(['stack_id' => $stack->id]);
+
+                return back()->with('success', 'تم إنشاء الدفتر وربط السندات بنجاح.');
+            });
+        } catch (\Throwable $e) {
+            Log::error('StackController::createStack failed: ' . $e->getMessage(), [
+                'request_data' => $request->all(),
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('error', 'حدث خطأ أثناء إنشاء الدفتر: ' . $e->getMessage());
+        }
     }
 
 
 
-    public function bulkAssign(Request $request) {
-        $request->validate(['bond_ids' => 'required|array', 'stack_id' => 'required']);
-        Bond::whereIn('id', $request->bond_ids)->update(['stack_id' => $request->stack_id]);
-        return response()->json(['success' => true, 'message' => 'Bonds assigned successfully.']);
+    public function bulkAssign(Request $request)
+    {
+        $request->validate([
+            'bond_ids' => 'required|array',
+            'stack_id' => 'required|exists:stacks,id'
+        ]);
+
+        try {
+            Bond::whereIn('id', $request->bond_ids)->update(['stack_id' => $request->stack_id]);
+            return response()->json([
+                'success' => true,
+                'message' => 'تم ربط السندات المحددة بالدفتر بنجاح.'
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('StackController::bulkAssign failed: ' . $e->getMessage(), [
+                'bond_ids' => $request->bond_ids,
+                'stack_id' => $request->stack_id,
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تخصيص السندات للدفتر: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function export(Stack $stack) 

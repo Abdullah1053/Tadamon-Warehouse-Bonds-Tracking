@@ -8,6 +8,7 @@ use App\Models\BondItem;
 use App\Models\Stack;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 
@@ -91,74 +92,87 @@ class BondController extends Controller
 
     public function store(Request $request)
     {
-        return DB::transaction(function () use ($request) {
-            $data = $request->all();
+        try {
+            return DB::transaction(function () use ($request) {
+                $data = $request->all();
 
-            $type = $request->input('type', Bond::TYPE_RECEIPT);
-            if (!in_array($type, [Bond::TYPE_RECEIPT, Bond::TYPE_DISBURSEMENT])) {
-                $type = Bond::TYPE_RECEIPT;
-            }
-            $data['type'] = $type;
+                $type = $request->input('type', Bond::TYPE_RECEIPT);
+                if (!in_array($type, [Bond::TYPE_RECEIPT, Bond::TYPE_DISBURSEMENT])) {
+                    $type = Bond::TYPE_RECEIPT;
+                }
+                $data['type'] = $type;
 
-            $isCancelled = $request->input('bond_type') === 'cancelled' 
-                || $request->input('received_from') === 'ملغي'
-                || $request->input('operation_name') === 'ملغي';
+                $isCancelled = $request->input('bond_type') === 'cancelled' 
+                    || $request->input('received_from') === 'ملغي'
+                    || $request->input('operation_name') === 'ملغي';
 
-            $isMissing = (bool) $request->input('is_missing')
-                || $request->input('bond_type') === 'missing'
-                || $request->input('received_from') === 'مفقود'
-                || $request->input('operation_name') === 'مفقود';
+                $isMissing = (bool) $request->input('is_missing')
+                    || $request->input('bond_type') === 'missing'
+                    || $request->input('received_from') === 'مفقود'
+                    || $request->input('operation_name') === 'مفقود';
 
-            if ($isCancelled) {
-                $data['operation_name'] = 'ملغي';
-                $data['received_from'] = 'ملغي';
-                $data['note'] = 'ملغي';
-                $data['car_number'] = null;
-                $data['is_missing'] = 0; // Physical copy is still attached
-            } elseif ($isMissing) {
-                $data['operation_name'] = 'مفقود';
-                $data['received_from'] = 'مفقود';
-                $data['note'] = 'مفقود';
-                $data['car_number'] = null;
-                $data['is_missing'] = 1; // Physical paper is cut off
-            } else {
-                $data['is_missing'] = 0;
-            }
+                if ($isCancelled) {
+                    $data['operation_name'] = 'ملغي';
+                    $data['received_from'] = 'ملغي';
+                    $data['note'] = 'ملغي';
+                    $data['car_number'] = null;
+                    $data['is_missing'] = 0; // Physical copy is still attached
+                } elseif ($isMissing) {
+                    $data['operation_name'] = 'مفقود';
+                    $data['received_from'] = 'مفقود';
+                    $data['note'] = 'مفقود';
+                    $data['car_number'] = null;
+                    $data['is_missing'] = 1; // Physical paper is cut off
+                } else {
+                    $data['is_missing'] = 0;
+                }
 
-            // Handle file upload for bond_image
-            if ($request->hasFile('bond_image')) {
-                $file = $request->file('bond_image');
-                $extension = $file->getClientOriginalExtension();
-                $cleanSerial = preg_replace('/[^0-9a-zA-Z_-]/', '', (string)$request->input('bond_serial', 'bond'));
-                $safeFilename = 'bond_' . $type . '_' . $cleanSerial . '_' . time() . '_' . Str::random(4) . '.' . $extension;
-                $path = $file->storeAs('bonds', $safeFilename, 'public');
-                $data['bond_link'] = '/storage/' . $path;
-            }
+                // Handle file upload for bond_image
+                if ($request->hasFile('bond_image')) {
+                    $file = $request->file('bond_image');
+                    $extension = $file->getClientOriginalExtension();
+                    $cleanSerial = preg_replace('/[^0-9a-zA-Z_-]/', '', (string)$request->input('bond_serial', 'bond'));
+                    $safeFilename = 'bond_' . $type . '_' . $cleanSerial . '_' . time() . '_' . Str::random(4) . '.' . $extension;
+                    $path = $file->storeAs('bonds', $safeFilename, 'public');
+                    $data['bond_link'] = '/storage/' . $path;
+                }
 
-            $bond = Bond::create($data);
+                $bond = Bond::create($data);
 
-            // Only add items if it's a normal bond (not cancelled and not missing)
-            if (!$isCancelled && !$isMissing && $request->has('items')) {
-                foreach ($request->items as $item) {
-                    if (!empty($item['description'])) {
-                        $bond->items()->create([
-                            'item_description' => $item['description'],
-                            'quantity' => $item['quantity']
-                        ]);
+                // Only add items if it's a normal bond (not cancelled and not missing)
+                if (!$isCancelled && !$isMissing && $request->has('items')) {
+                    foreach ($request->items as $item) {
+                        if (!empty($item['description'])) {
+                            $bond->items()->create([
+                                'item_description' => $item['description'],
+                                'quantity' => $item['quantity']
+                            ]);
+                        }
                     }
                 }
-            }
-            $currentSerial = $request->bond_serial; // e.g., "03154" or "0001"
-            $nextNumber = (int) $currentSerial + 1;
-            $formattedNext = str_pad($nextNumber, strlen($currentSerial), '0', STR_PAD_LEFT);
+                $currentSerial = $request->bond_serial; // e.g., "03154" or "0001"
+                $nextNumber = (int) $currentSerial + 1;
+                $formattedNext = str_pad($nextNumber, strlen($currentSerial), '0', STR_PAD_LEFT);
+
+                return response()->json([
+                    'success' => true, 
+                    'type' => $type,
+                    'next_serial' => $formattedNext,
+                    'saved_date'  => $bond->date // Send the date back to keep the form consistent
+                ]);
+            });
+        } catch (\Throwable $e) {
+            Log::error('BondController::store failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'request_data' => $request->except(['bond_image', '_token']),
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return response()->json([
-                'success' => true, 
-                'type' => $type,
-                'next_serial' => $formattedNext,
-                'saved_date'  => $bond->date // Send the date back to keep the form consistent
-            ]);
-        });
+                'success' => false,
+                'message' => 'حدث خطأ أثناء حفظ السند في قاعدة البيانات: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function index()
@@ -176,21 +190,38 @@ class BondController extends Controller
     // Action to remove a bond from a stack (Unstack)
     public function detach(Bond $bond)
     {
-        $bond->update(['stack_id' => null]);
-        return back()->with('success', 'Bond unlinked from stack.');
+        try {
+            $bond->update(['stack_id' => null]);
+            return back()->with('success', 'Bond unlinked from stack.');
+        } catch (\Throwable $e) {
+            Log::error('BondController::detach failed: ' . $e->getMessage(), [
+                'bond_id' => $bond->id,
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('error', 'حدث خطأ أثناء فك ارتباط السند: ' . $e->getMessage());
+        }
     }
 
     // Action to completely delete a bond record
     public function destroy(Bond $bond)
     {
-        if ($bond->bond_link && str_starts_with($bond->bond_link, '/storage/')) {
-            $oldRelative = str_replace('/storage/', '', $bond->bond_link);
-            Storage::disk('public')->delete($oldRelative);
+        try {
+            if ($bond->bond_link && str_starts_with($bond->bond_link, '/storage/')) {
+                $oldRelative = str_replace('/storage/', '', $bond->bond_link);
+                Storage::disk('public')->delete($oldRelative);
+            }
+            $bond->delete(); // Cascades to items if migration set correctly
+            return back()->with('success', 'Bond deleted successfully.');
+        } catch (\Throwable $e) {
+            Log::error('BondController::destroy failed: ' . $e->getMessage(), [
+                'bond_id' => $bond->id,
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('error', 'حدث خطأ أثناء حذف السند: ' . $e->getMessage());
         }
-        $bond->delete(); // Cascades to items if migration set correctly
-        return back()->with('success', 'Bond deleted successfully.');
     }
-
 
     public function bulkAssign(Request $request)
     {
@@ -199,13 +230,27 @@ class BondController extends Controller
             'stack_id' => 'required|exists:stacks,id'
         ]);
 
-        Bond::whereIn('id', $request->bond_ids)
-            ->update(['stack_id' => $request->stack_id]);
+        try {
+            Bond::whereIn('id', $request->bond_ids)
+                ->update(['stack_id' => $request->stack_id]);
 
-        return response()->json([
-            'success' => true,
-            'message' => count($request->bond_ids) . ' bonds assigned successfully.'
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => count($request->bond_ids) . ' bonds assigned successfully.'
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('BondController::bulkAssign failed: ' . $e->getMessage(), [
+                'bond_ids' => $request->bond_ids,
+                'stack_id' => $request->stack_id,
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تخصيص السندات للدفتر: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -224,83 +269,103 @@ class BondController extends Controller
         $action = $request->action;
         $count = count($bondIds);
 
-        $message = DB::transaction(function () use ($bondIds, $action, $request, $count) {
-            switch ($action) {
-                case 'cancel':
-                    Bond::whereIn('id', $bondIds)->update([
-                        'operation_name' => 'ملغي',
-                        'received_from' => 'ملغي',
-                        'note' => 'ملغي',
-                        'car_number' => null,
-                        'is_missing' => 0
-                    ]);
-                    BondItem::whereIn('bond_id', $bondIds)->delete();
-                    return "تم تحويل {$count} سند إلى ملغي بنجاح.";
+        try {
+            $message = DB::transaction(function () use ($bondIds, $action, $request, $count) {
+                switch ($action) {
+                    case 'cancel':
+                        Bond::whereIn('id', $bondIds)->update([
+                            'operation_name' => 'ملغي',
+                            'received_from' => 'ملغي',
+                            'note' => 'ملغي',
+                            'car_number' => null,
+                            'is_missing' => 0
+                        ]);
+                        BondItem::whereIn('bond_id', $bondIds)->delete();
+                        return "تم تحويل {$count} سند إلى ملغي بنجاح.";
 
-                case 'missing':
-                    Bond::whereIn('id', $bondIds)->update([
-                        'operation_name' => 'مفقود',
-                        'received_from' => 'مفقود',
-                        'note' => 'مفقود',
-                        'car_number' => null,
-                        'is_missing' => 1
-                    ]);
-                    BondItem::whereIn('bond_id', $bondIds)->delete();
-                    return "تم تحويل {$count} سند إلى مفقود بنجاح.";
+                    case 'missing':
+                        Bond::whereIn('id', $bondIds)->update([
+                            'operation_name' => 'مفقود',
+                            'received_from' => 'مفقود',
+                            'note' => 'مفقود',
+                            'car_number' => null,
+                            'is_missing' => 1
+                        ]);
+                        BondItem::whereIn('bond_id', $bondIds)->delete();
+                        return "تم تحويل {$count} سند إلى مفقود بنجاح.";
 
-                case 'normal':
-                    $bonds = Bond::whereIn('id', $bondIds)->get();
-                    foreach ($bonds as $bond) {
-                        $updateData = ['is_missing' => 0];
-                        if ($bond->received_from === 'ملغي' || $bond->received_from === 'مفقود') {
-                            $updateData['received_from'] = '';
+                    case 'normal':
+                        $bonds = Bond::whereIn('id', $bondIds)->get();
+                        foreach ($bonds as $bond) {
+                            $updateData = ['is_missing' => 0];
+                            if ($bond->received_from === 'ملغي' || $bond->received_from === 'مفقود') {
+                                $updateData['received_from'] = '';
+                            }
+                            if ($bond->operation_name === 'ملغي' || $bond->operation_name === 'مفقود') {
+                                $updateData['operation_name'] = '';
+                            }
+                            if ($bond->note === 'ملغي' || $bond->note === 'مفقود') {
+                                $updateData['note'] = null;
+                            }
+                            $bond->update($updateData);
                         }
-                        if ($bond->operation_name === 'ملغي' || $bond->operation_name === 'مفقود') {
-                            $updateData['operation_name'] = '';
+                        return "تمت استعادة {$count} سند إلى الحالة الطبيعية.";
+
+                    case 'delete':
+                        $bondsToDelete = Bond::whereIn('id', $bondIds)->get();
+                        foreach ($bondsToDelete as $b) {
+                            if ($b->bond_link && str_starts_with($b->bond_link, '/storage/')) {
+                                $oldRelative = str_replace('/storage/', '', $b->bond_link);
+                                Storage::disk('public')->delete($oldRelative);
+                            }
                         }
-                        if ($bond->note === 'ملغي' || $bond->note === 'مفقود') {
-                            $updateData['note'] = null;
-                        }
-                        $bond->update($updateData);
-                    }
-                    return "تمت استعادة {$count} سند إلى الحالة الطبيعية.";
+                        BondItem::whereIn('bond_id', $bondIds)->delete();
+                        Bond::whereIn('id', $bondIds)->delete();
+                        return "تم حذف {$count} سند نهائياً بنجاح.";
 
-                case 'delete':
-                    $bondsToDelete = Bond::whereIn('id', $bondIds)->get();
-                    foreach ($bondsToDelete as $b) {
-                        if ($b->bond_link && str_starts_with($b->bond_link, '/storage/')) {
-                            $oldRelative = str_replace('/storage/', '', $b->bond_link);
-                            Storage::disk('public')->delete($oldRelative);
-                        }
-                    }
-                    BondItem::whereIn('bond_id', $bondIds)->delete();
-                    Bond::whereIn('id', $bondIds)->delete();
-                    return "تم حذف {$count} سند نهائياً بنجاح.";
+                    case 'unstack':
+                        Bond::whereIn('id', $bondIds)->update(['stack_id' => null]);
+                        return "تم إلغاء تكديس {$count} سند ونقلها لقائمة غير المخصصة.";
 
-                case 'unstack':
-                    Bond::whereIn('id', $bondIds)->update(['stack_id' => null]);
-                    return "تم إلغاء تكديس {$count} سند ونقلها لقائمة غير المخصصة.";
+                    case 'move':
+                        $targetStack = Stack::findOrFail($request->target_stack_id);
+                        Bond::whereIn('id', $bondIds)->update(['stack_id' => $targetStack->id]);
+                        return "تم نقل {$count} سند إلى دفتر \"{$targetStack->stack_name}\" بنجاح.";
 
-                case 'move':
-                    $targetStack = Stack::findOrFail($request->target_stack_id);
-                    Bond::whereIn('id', $bondIds)->update(['stack_id' => $targetStack->id]);
-                    return "تم نقل {$count} سند إلى دفتر \"{$targetStack->stack_name}\" بنجاح.";
+                    default:
+                        return "تم تنفيذ الإجراء بنجاح.";
+                }
+            });
 
-                default:
-                    return "تم تنفيذ الإجراء بنجاح.";
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'action' => $action,
+                    'affected_ids' => $bondIds
+                ]);
             }
-        });
 
-        if ($request->expectsJson() || $request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => $message,
+            return back()->with('success', $message);
+        } catch (\Throwable $e) {
+            Log::error('BondController::bulkAction failed: ' . $e->getMessage(), [
                 'action' => $action,
-                'affected_ids' => $bondIds
+                'bond_ids' => $bondIds,
+                'target_stack_id' => $request->target_stack_id,
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
             ]);
-        }
 
-        return back()->with('success', $message);
+            $errorMsg = 'حدث خطأ أثناء تنفيذ الإجراء الجماعي: ' . $e->getMessage();
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMsg
+                ], 500);
+            }
+
+            return back()->with('error', $errorMsg);
+        }
     }
 
 
@@ -316,86 +381,100 @@ class BondController extends Controller
 
     public function update(Request $request, Bond $bond)
     {
-        return DB::transaction(function () use ($request, $bond) {
-            // 1. Prepare Data
-            $data = $request->only([
-                'bond_serial',
-                'type',
-                'date',
-                'operation_name',
-                'received_from',
-                'car_number',
-                'note',
-                'bond_link'
-            ]);
-            if (isset($data['type']) && !in_array($data['type'], [Bond::TYPE_RECEIPT, Bond::TYPE_DISBURSEMENT])) {
-                unset($data['type']);
-            }
-
-            $isCancelled = $request->input('bond_type') === 'cancelled' 
-                || $request->input('received_from') === 'ملغي'
-                || $request->input('operation_name') === 'ملغي';
-
-            $isMissing = (bool) $request->input('is_missing')
-                || $request->input('bond_type') === 'missing'
-                || $request->input('received_from') === 'مفقود'
-                || $request->input('operation_name') === 'مفقود';
-
-            if ($isCancelled) {
-                $data['operation_name'] = 'ملغي';
-                $data['received_from'] = 'ملغي';
-                $data['note'] = 'ملغي';
-                $data['car_number'] = null;
-                $data['is_missing'] = 0; // Physical copy is still attached
-            } elseif ($isMissing) {
-                $data['operation_name'] = 'مفقود';
-                $data['received_from'] = 'مفقود';
-                $data['note'] = 'مفقود';
-                $data['car_number'] = null;
-                $data['is_missing'] = 1; // Physical paper is cut off
-            } else {
-                $data['is_missing'] = 0;
-            }
-
-            // Handle image removal or upload
-            if ($request->boolean('remove_image')) {
-                if ($bond->bond_link && str_starts_with($bond->bond_link, '/storage/')) {
-                    $oldRelative = str_replace('/storage/', '', $bond->bond_link);
-                    Storage::disk('public')->delete($oldRelative);
+        try {
+            return DB::transaction(function () use ($request, $bond) {
+                // 1. Prepare Data
+                $data = $request->only([
+                    'bond_serial',
+                    'type',
+                    'date',
+                    'operation_name',
+                    'received_from',
+                    'car_number',
+                    'note',
+                    'bond_link'
+                ]);
+                if (isset($data['type']) && !in_array($data['type'], [Bond::TYPE_RECEIPT, Bond::TYPE_DISBURSEMENT])) {
+                    unset($data['type']);
                 }
-                $data['bond_link'] = null;
-            } elseif ($request->hasFile('bond_image')) {
-                if ($bond->bond_link && str_starts_with($bond->bond_link, '/storage/')) {
-                    $oldRelative = str_replace('/storage/', '', $bond->bond_link);
-                    Storage::disk('public')->delete($oldRelative);
+
+                $isCancelled = $request->input('bond_type') === 'cancelled' 
+                    || $request->input('received_from') === 'ملغي'
+                    || $request->input('operation_name') === 'ملغي';
+
+                $isMissing = (bool) $request->input('is_missing')
+                    || $request->input('bond_type') === 'missing'
+                    || $request->input('received_from') === 'مفقود'
+                    || $request->input('operation_name') === 'مفقود';
+
+                if ($isCancelled) {
+                    $data['operation_name'] = 'ملغي';
+                    $data['received_from'] = 'ملغي';
+                    $data['note'] = 'ملغي';
+                    $data['car_number'] = null;
+                    $data['is_missing'] = 0; // Physical copy is still attached
+                } elseif ($isMissing) {
+                    $data['operation_name'] = 'مفقود';
+                    $data['received_from'] = 'مفقود';
+                    $data['note'] = 'مفقود';
+                    $data['car_number'] = null;
+                    $data['is_missing'] = 1; // Physical paper is cut off
+                } else {
+                    $data['is_missing'] = 0;
                 }
-                $file = $request->file('bond_image');
-                $extension = $file->getClientOriginalExtension();
-                $cleanSerial = preg_replace('/[^0-9a-zA-Z_-]/', '', (string)$bond->bond_serial);
-                $safeFilename = 'bond_' . $cleanSerial . '_' . time() . '_' . Str::random(4) . '.' . $extension;
-                $path = $file->storeAs('bonds', $safeFilename, 'public');
-                $data['bond_link'] = '/storage/' . $path;
-            }
 
-            // 2. Update Header
-            $bond->update($data);
+                // Handle image removal or upload
+                if ($request->boolean('remove_image')) {
+                    if ($bond->bond_link && str_starts_with($bond->bond_link, '/storage/')) {
+                        $oldRelative = str_replace('/storage/', '', $bond->bond_link);
+                        Storage::disk('public')->delete($oldRelative);
+                    }
+                    $data['bond_link'] = null;
+                } elseif ($request->hasFile('bond_image')) {
+                    if ($bond->bond_link && str_starts_with($bond->bond_link, '/storage/')) {
+                        $oldRelative = str_replace('/storage/', '', $bond->bond_link);
+                        Storage::disk('public')->delete($oldRelative);
+                    }
+                    $file = $request->file('bond_image');
+                    $extension = $file->getClientOriginalExtension();
+                    $cleanSerial = preg_replace('/[^0-9a-zA-Z_-]/', '', (string)$bond->bond_serial);
+                    $safeFilename = 'bond_' . $cleanSerial . '_' . time() . '_' . Str::random(4) . '.' . $extension;
+                    $path = $file->storeAs('bonds', $safeFilename, 'public');
+                    $data['bond_link'] = '/storage/' . $path;
+                }
 
-            // 3. Sync Items (Only for normal bonds)
-            $bond->items()->delete();
+                // 2. Update Header
+                $bond->update($data);
 
-            if (!$isCancelled && !$isMissing && $request->has('items')) {
-                foreach ($request->items as $item) {
-                    if (!empty($item['description'])) {
-                        $bond->items()->create([
-                            'item_description' => $item['description'],
-                            'quantity' => $item['quantity'],
-                        ]);
+                // 3. Sync Items (Only for normal bonds)
+                $bond->items()->delete();
+
+                if (!$isCancelled && !$isMissing && $request->has('items')) {
+                    foreach ($request->items as $item) {
+                        if (!empty($item['description'])) {
+                            $bond->items()->create([
+                                'item_description' => $item['description'],
+                                'quantity' => $item['quantity'],
+                            ]);
+                        }
                     }
                 }
-            }
 
-            return response()->json(['success' => true, 'redirect' => route('bonds.index')]);
-        });
+                return response()->json(['success' => true, 'redirect' => route('bonds.index')]);
+            });
+        } catch (\Throwable $e) {
+            Log::error('BondController::update failed: ' . $e->getMessage(), [
+                'bond_id' => $bond->id,
+                'exception' => $e,
+                'request_data' => $request->except(['bond_image', '_token']),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تعديل السند: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -423,85 +502,98 @@ class BondController extends Controller
             'stack_id' => 'nullable|exists:stacks,id'
         ]);
 
-        $stackId = $request->input('stack_id');
-        $files = $request->file('images');
-        $results = [];
-        $matchedCount = 0;
-        $unmatchedCount = 0;
+        try {
+            $stackId = $request->input('stack_id');
+            $files = $request->file('images');
+            $results = [];
+            $matchedCount = 0;
+            $unmatchedCount = 0;
 
-        foreach ($files as $file) {
-            $originalName = $file->getClientOriginalName();
-            $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
+            foreach ($files as $file) {
+                $originalName = $file->getClientOriginalName();
+                $nameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME);
 
-            // Extract serial numbers (e.g. "03001", "IMG_3001", "bond_3001")
-            preg_match('/(\d+)/', $nameWithoutExt, $matches);
-            $extractedSerial = $matches[1] ?? null;
+                // Extract serial numbers (e.g. "03001", "IMG_3001", "bond_3001")
+                preg_match('/(\d+)/', $nameWithoutExt, $matches);
+                $extractedSerial = $matches[1] ?? null;
 
-            $bond = null;
-            if ($extractedSerial) {
-                $query = Bond::query();
-                if ($stackId) {
-                    $query->where('stack_id', $stackId);
+                $bond = null;
+                if ($extractedSerial) {
+                    $query = Bond::query();
+                    if ($stackId) {
+                        $query->where('stack_id', $stackId);
+                    }
+                    $query->where(function ($q) use ($extractedSerial) {
+                        $q->where('bond_serial', $extractedSerial)
+                          ->orWhere('bond_serial', ltrim($extractedSerial, '0'))
+                          ->orWhereRaw('CAST(bond_serial AS UNSIGNED) = ?', [(int)$extractedSerial]);
+                    });
+
+                    $bond = $query->first();
+
+                    // If not found in stack, try finding globally
+                    if (!$bond && $stackId) {
+                        $bond = Bond::where('bond_serial', $extractedSerial)
+                            ->orWhere('bond_serial', ltrim($extractedSerial, '0'))
+                            ->orWhereRaw('CAST(bond_serial AS UNSIGNED) = ?', [(int)$extractedSerial])
+                            ->first();
+                    }
                 }
-                $query->where(function ($q) use ($extractedSerial) {
-                    $q->where('bond_serial', $extractedSerial)
-                      ->orWhere('bond_serial', ltrim($extractedSerial, '0'))
-                      ->orWhereRaw('CAST(bond_serial AS UNSIGNED) = ?', [(int)$extractedSerial]);
-                });
 
-                $bond = $query->first();
+                // Save the file
+                $extension = $file->getClientOriginalExtension();
+                $serialPrefix = $bond ? $bond->bond_serial : ($extractedSerial ?: 'unmatched');
+                $safeFilename = 'bond_' . $serialPrefix . '_' . time() . '_' . Str::random(4) . '.' . $extension;
+                $path = $file->storeAs('bonds', $safeFilename, 'public');
+                $storagePath = '/storage/' . $path;
 
-                // If not found in stack, try finding globally
-                if (!$bond && $stackId) {
-                    $bond = Bond::where('bond_serial', $extractedSerial)
-                        ->orWhere('bond_serial', ltrim($extractedSerial, '0'))
-                        ->orWhereRaw('CAST(bond_serial AS UNSIGNED) = ?', [(int)$extractedSerial])
-                        ->first();
+                if ($bond) {
+                    if ($bond->bond_link && str_starts_with($bond->bond_link, '/storage/')) {
+                        $oldRelative = str_replace('/storage/', '', $bond->bond_link);
+                        Storage::disk('public')->delete($oldRelative);
+                    }
+                    $bond->update(['bond_link' => $storagePath]);
+                    $matchedCount++;
+                    $results[] = [
+                        'filename' => $originalName,
+                        'matched' => true,
+                        'bond_id' => $bond->id,
+                        'serial' => $bond->bond_serial,
+                        'receiver' => $bond->received_from,
+                        'url' => asset($storagePath),
+                        'message' => 'تم ربطه بنجاح بالسند #' . $bond->bond_serial
+                    ];
+                } else {
+                    $unmatchedCount++;
+                    $results[] = [
+                        'filename' => $originalName,
+                        'matched' => false,
+                        'serial' => $extractedSerial ?: 'غير معروف',
+                        'url' => asset($storagePath),
+                        'message' => 'تم حفظ الملف، ولكن لم يتم العثور على سند مطابق للرقم (' . ($extractedSerial ?: 'N/A') . ')'
+                    ];
                 }
             }
 
-            // Save the file
-            $extension = $file->getClientOriginalExtension();
-            $serialPrefix = $bond ? $bond->bond_serial : ($extractedSerial ?: 'unmatched');
-            $safeFilename = 'bond_' . $serialPrefix . '_' . time() . '_' . Str::random(4) . '.' . $extension;
-            $path = $file->storeAs('bonds', $safeFilename, 'public');
-            $storagePath = '/storage/' . $path;
+            return response()->json([
+                'success' => true,
+                'message' => "تم رفع {$matchedCount} صورة وربطها بالسندات بنجاح!" . ($unmatchedCount > 0 ? " ({$unmatchedCount} ملف غير مطابق)" : ''),
+                'matched_count' => $matchedCount,
+                'unmatched_count' => $unmatchedCount,
+                'total_count' => count($files),
+                'details' => $results
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('BondController::bulkUpload failed: ' . $e->getMessage(), [
+                'stack_id' => $request->input('stack_id'),
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
 
-            if ($bond) {
-                if ($bond->bond_link && str_starts_with($bond->bond_link, '/storage/')) {
-                    $oldRelative = str_replace('/storage/', '', $bond->bond_link);
-                    Storage::disk('public')->delete($oldRelative);
-                }
-                $bond->update(['bond_link' => $storagePath]);
-                $matchedCount++;
-                $results[] = [
-                    'filename' => $originalName,
-                    'matched' => true,
-                    'bond_id' => $bond->id,
-                    'serial' => $bond->bond_serial,
-                    'receiver' => $bond->received_from,
-                    'url' => asset($storagePath),
-                    'message' => 'تم ربطه بنجاح بالسند #' . $bond->bond_serial
-                ];
-            } else {
-                $unmatchedCount++;
-                $results[] = [
-                    'filename' => $originalName,
-                    'matched' => false,
-                    'serial' => $extractedSerial ?: 'غير معروف',
-                    'url' => asset($storagePath),
-                    'message' => 'تم حفظ الملف، ولكن لم يتم العثور على سند مطابق للرقم (' . ($extractedSerial ?: 'N/A') . ')'
-                ];
-            }
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء رفع الصور وربطها: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => "تم رفع {$matchedCount} صورة وربطها بالسندات بنجاح!" . ($unmatchedCount > 0 ? " ({$unmatchedCount} ملف غير مطابق)" : ''),
-            'matched_count' => $matchedCount,
-            'unmatched_count' => $unmatchedCount,
-            'total_count' => count($files),
-            'details' => $results
-        ]);
     }
 }
