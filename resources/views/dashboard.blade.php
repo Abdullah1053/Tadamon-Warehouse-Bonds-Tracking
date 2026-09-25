@@ -1,6 +1,23 @@
 @extends('layouts.app')
 
 @section('content')
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+    <div>
+        <h2 class="text-xl font-black text-gray-800 tracking-tight">نظام إدارة وتتبع السندات المخزنية</h2>
+        <p class="text-xs text-gray-500">إدخال، تكديس، وأرشفة سندات استلام وصرف المواد بدقة ومرونة</p>
+    </div>
+    <div class="flex items-center gap-3">
+        <a href="{{ route('bonds.create', ['type' => 'receipt']) }}" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow transition">
+            <span>📥</span>
+            <span>+ سند استلام مواد</span>
+        </a>
+        <a href="{{ route('bonds.createDisbursement') }}" class="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold shadow transition">
+            <span>📤</span>
+            <span>+ سند صرف مواد</span>
+        </a>
+    </div>
+</div>
+
 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
     <!-- LEFT: Create Stack Section -->
     <div class="md:col-span-1 bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-600 self-start">

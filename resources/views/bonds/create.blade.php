@@ -1,13 +1,61 @@
 @extends('layouts.app')
 @section('content')
-    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-md border-t-8 border-blue-600">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 mb-6 border-b border-gray-200 gap-4">
-            <div>
-                <h2 class="text-2xl font-black text-gray-800 tracking-tight">Digitize Delivery Bond</h2>
-                <p class="text-sm text-gray-500">Enter physical warehouse bonds into the tracking system.</p>
+    @php
+        $isDisbursement = ($type === 'disbursement');
+        $themeBorder = $isDisbursement ? 'border-purple-600' : 'border-blue-600';
+        $themeRing = $isDisbursement ? 'focus:ring-purple-400' : 'focus:ring-blue-400';
+        $themeBadge = $isDisbursement ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-blue-100 text-blue-800 border-blue-200';
+        $themeBtn = $isDisbursement ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700';
+    @endphp
+
+    <div class="max-w-4xl mx-auto mb-4">
+        <!-- Top Bond Type Selector Tabs -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider px-2">نوع السند:</span>
+                <div class="inline-flex rounded-lg bg-gray-100 p-1 border border-gray-200 text-xs font-bold">
+                    <a href="{{ route('bonds.create', ['type' => 'receipt']) }}"
+                        class="px-4 py-2 rounded-md transition flex items-center gap-2 {{ !$isDisbursement ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-200' }}">
+                        <span>📥</span>
+                        <span>سند استلام مواد (Receipt)</span>
+                        @if(!$isDisbursement)
+                            <span class="w-2 h-2 rounded-full bg-white"></span>
+                        @endif
+                    </a>
+                    <a href="{{ route('bonds.create', ['type' => 'disbursement']) }}"
+                        class="px-4 py-2 rounded-md transition flex items-center gap-2 {{ $isDisbursement ? 'bg-purple-600 text-white shadow-sm' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-200' }}">
+                        <span>📤</span>
+                        <span>سند صرف مواد (Disbursement)</span>
+                        @if($isDisbursement)
+                            <span class="w-2 h-2 rounded-full bg-white"></span>
+                        @endif
+                    </a>
+                </div>
             </div>
 
-            {{-- Mode Switcher Pills --}}
+            <div class="flex items-center gap-2 text-xs">
+                <span class="px-3 py-1.5 rounded-full font-bold border {{ $themeBadge }}">
+                    {{ $isDisbursement ? 'دفتر صرف المواد المخزنية' : 'دفتر استلام وتوريد المواد' }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-md border-t-8 {{ $themeBorder }}">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 mb-6 border-b border-gray-200 gap-4">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">{{ $isDisbursement ? '📤' : '📥' }}</span>
+                    <h2 class="text-2xl font-black text-gray-800 tracking-tight" id="formHeaderTitle">
+                        {{ $isDisbursement ? 'إدخال سند صرف مواد (Disbursement Bond)' : 'إدخال سند استلام مواد (Receipt Bond)' }}
+                    </h2>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">
+                    {{ $isDisbursement ? 'إدخال سندات صرف المواد من المستودع ومتابعتها في النظام.' : 'إدخال سندات توريد واستلام المواد إلى المستودع.' }}
+                </p>
+            </div>
+
+            {{-- Mode Switcher Pills (Normal / Cancelled / Missing) --}}
             <div class="inline-flex rounded-xl bg-gray-100 p-1 border border-gray-200 text-xs font-bold" id="bondModeContainer">
                 <button type="button" onclick="switchBondMode('normal')" id="btnModeNormal"
                     class="px-3.5 py-2 rounded-lg transition bg-white text-green-700 shadow-sm flex items-center gap-1.5">
@@ -35,32 +83,44 @@
 
         <form id="bondForm" class="space-y-6">
             @csrf
-            {{-- Hidden bond_type input for mode persistence --}}
+            {{-- Bond Type Hidden Input ('receipt' or 'disbursement') --}}
+            <input type="hidden" name="type" id="hidden_bond_record_type" value="{{ $type }}">
+            {{-- Status Mode Hidden Inputs --}}
             <input type="hidden" name="bond_type" id="hidden_bond_type" value="normal">
             <input type="hidden" name="is_missing" id="hidden_is_missing" value="0">
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-5 rounded-xl border border-gray-200" id="headerFieldsGrid">
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Bond Serial Number</label>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
+                        رقم السند (Bond Serial Number)
+                    </label>
                     <input type="text" id="bond_serial" name="bond_serial" value="{{ $nextSerial }}"
-                        class="w-full border border-gray-300 p-2.5 rounded-lg font-bold text-gray-800 focus:ring-2 focus:ring-blue-400 focus:bg-white transition" required>
+                        class="w-full border border-gray-300 p-2.5 rounded-lg font-bold text-gray-800 focus:ring-2 {{ $themeRing }} focus:bg-white transition" required>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Date</label>
-                    <input type="date" name="date" value="{{ $defaultDate }}" class="w-full border border-gray-300 p-2.5 rounded-lg font-semibold focus:ring-2 focus:ring-blue-400 focus:bg-white transition"
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
+                        التاريخ (Date)
+                    </label>
+                    <input type="date" name="date" value="{{ $defaultDate }}" class="w-full border border-gray-300 p-2.5 rounded-lg font-semibold focus:ring-2 {{ $themeRing }} focus:bg-white transition"
                         required>
                 </div>
                 <div class="col-span-1 md:col-span-2">
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Operation / Project Name</label>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
+                        اسم العملية / المشروع (Operation / Project Name)
+                    </label>
                     <input type="text" name="operation_name" id="field_operation_name" value="جسر النصر" dir="auto"
-                        class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-400 focus:bg-white transition" placeholder="Project Site A"
+                        class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 {{ $themeRing }} focus:bg-white transition" placeholder="Project Site A"
                         required>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Received From (Name)</label>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1" id="label_party_name">
+                        {{ $isDisbursement ? 'صُرف إلى / المستلم (Disbursed To / Receiver)' : 'وارد من / المورّد (Received From / Supplier)' }}
+                    </label>
                     <input type="text" name="received_from" id="field_received_from" list="receivers_list" dir="auto"
-                        class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-400 focus:bg-white transition" autocomplete="off" required>
+                        class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 {{ $themeRing }} focus:bg-white transition" 
+                        placeholder="{{ $isDisbursement ? 'اسم المستلم أو الجهة المصروف لها...' : 'اسم المورد أو الجهة الوارد منها...' }}"
+                        autocomplete="off" required>
 
                     <datalist id="receivers_list">
                         @foreach ($receivers as $name)
@@ -69,19 +129,25 @@
                     </datalist>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Vehicle Number</label>
-                    <input type="text" name="car_number" id="field_car_number" class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-400 focus:bg-white transition" placeholder="e.g. 12345/1">
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
+                        رقم السيارة (Vehicle Number)
+                    </label>
+                    <input type="text" name="car_number" id="field_car_number" class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 {{ $themeRing }} focus:bg-white transition" placeholder="e.g. 12345/1">
                 </div>
 
                 <div class="col-span-1 md:col-span-2">
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Additional Notes</label>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
+                        ملاحظات إضافية (Additional Notes)
+                    </label>
                     <textarea name="note" id="field_note" rows="2" dir="auto"
-                        class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-400 focus:bg-white transition"
-                        placeholder="Any special instructions...">رقم الفاتورة: </textarea>
+                        class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 {{ $themeRing }} focus:bg-white transition"
+                        placeholder="Any special instructions...">{{ $isDisbursement ? 'رقم إذن الصرف: ' : 'رقم الفاتورة: ' }}</textarea>
                 </div>
 
                 <div class="col-span-1 md:col-span-2">
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Bond Photo / Image (صورة السند الورقي)</label>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">
+                        صورة السند الورقي (Bond Photo / Image)
+                    </label>
                     <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-blue-400 transition bg-gray-50/50" id="imageDropzone">
                         <input type="file" name="bond_image" id="field_bond_image" accept="image/*" class="hidden" onchange="previewSelectedImage(this)">
                         
@@ -123,15 +189,17 @@
                 <table id="itemsTable" class="w-full border-collapse rounded-lg overflow-hidden border border-gray-200">
                     <thead>
                         <tr class="bg-gray-100 text-left text-xs font-bold text-gray-600 uppercase">
-                            <th class="p-3 border">Item Description</th>
-                            <th class="p-3 border w-36">Quantity</th>
+                            <th class="p-3 border">Item Description (بيان المادة)</th>
+                            <th class="p-3 border w-36">Quantity (الكمية)</th>
                             <th class="p-3 border w-16 text-center"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="border p-1"><input type="text" name="items[0][description]"
-                                    class="w-full p-2 outline-none item-desc-input" placeholder="Item description..." dir="auto" required></td>
+                            <td class="border p-1">
+                                <input type="text" name="items[0][description]"
+                                    class="w-full p-2 outline-none item-desc-input" placeholder="Item description..." dir="auto" list="items_list" required>
+                            </td>
 
                             <datalist id="items_list">
                                 @foreach ($itemSuggestions as $desc)
@@ -163,7 +231,7 @@
                 <div id="addToolContainer">
                     <button type="button" onclick="addRow()"
                         class="px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-bold shadow-sm transition">
-                        + Add Tool / Item
+                        + Add Tool / Item (إضافة بند)
                     </button>
                 </div>
 
@@ -186,9 +254,11 @@
 
                     {{-- Standard Save Button --}}
                     <button type="submit" id="mainSubmitBtn"
-                        class="px-7 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-black text-sm shadow-md transition flex items-center gap-2">
+                        class="px-7 py-2.5 {{ $themeBtn }} text-white rounded-lg font-black text-sm shadow-md transition flex items-center gap-2">
                         <span>💾</span>
-                        <span id="mainSubmitBtnText">SAVE BOND</span>
+                        <span id="mainSubmitBtnText">
+                            {{ $isDisbursement ? 'SAVE DISBURSEMENT BOND' : 'SAVE RECEIPT BOND' }}
+                        </span>
                     </button>
                 </div>
             </div>
@@ -198,8 +268,10 @@
     <script>
         let rowIdx = 1;
         let currentMode = 'normal'; // 'normal' | 'cancelled' | 'missing'
+        const currentType = '{{ $type }}';
+        const isDisbursement = (currentType === 'disbursement');
 
-        // Function to switch bond entry mode
+        // Function to switch bond entry mode (normal / cancelled / missing)
         function switchBondMode(mode) {
             currentMode = mode;
             document.getElementById('hidden_bond_type').value = mode;
@@ -238,11 +310,13 @@
 
                 opInput.value = 'جسر النصر';
                 if (recvInput.value === 'ملغي' || recvInput.value === 'مفقود') recvInput.value = '';
-                noteInput.value = 'رقم الفاتورة: ';
+                noteInput.value = isDisbursement ? 'رقم إذن الصرف: ' : 'رقم الفاتورة: ';
                 isMissingInput.value = '0';
 
-                submitBtn.className = 'px-7 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-black text-sm shadow-md transition flex items-center gap-2';
-                submitBtnText.innerText = 'SAVE BOND';
+                submitBtn.className = isDisbursement 
+                    ? 'px-7 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-black text-sm shadow-md transition flex items-center gap-2'
+                    : 'px-7 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-black text-sm shadow-md transition flex items-center gap-2';
+                submitBtnText.innerText = isDisbursement ? 'SAVE DISBURSEMENT BOND' : 'SAVE RECEIPT BOND';
 
             } else if (mode === 'cancelled') {
                 btnCancelled.className = 'px-3.5 py-2 rounded-lg transition bg-white text-amber-800 shadow-sm font-bold flex items-center gap-1.5';
@@ -302,7 +376,7 @@
             const tableBody = document.querySelector('#itemsTable tbody');
             const newRow = `
                 <tr class="hover:bg-gray-50 transition">
-                    <td class="border p-1"><input type="text" name="items[${rowIdx}][description]" class="w-full p-2 outline-none item-desc-input" required placeholder="Item description..." dir="auto"></td>
+                    <td class="border p-1"><input type="text" name="items[${rowIdx}][description]" list="items_list" class="w-full p-2 outline-none item-desc-input" required placeholder="Item description..." dir="auto"></td>
                     <td class="border p-1"><input type="number" name="items[${rowIdx}][quantity]" step="any" class="w-full p-2 outline-none item-qty-input" required placeholder="0.00"></td>
                     <td class="border text-center"><button type="button" onclick="removeRow(this)" class="text-red-500 font-black hover:text-red-700 px-2">✕</button></td>
                 </tr>`;
@@ -327,6 +401,7 @@
 
             const formData = new FormData();
             formData.append('_token', '{{ csrf_token() }}');
+            formData.append('type', currentType);
             formData.append('bond_serial', serial);
             formData.append('date', date);
             formData.append('operation_name', 'ملغي');
@@ -348,6 +423,7 @@
 
             const formData = new FormData();
             formData.append('_token', '{{ csrf_token() }}');
+            formData.append('type', currentType);
             formData.append('bond_serial', serial);
             formData.append('date', date);
             formData.append('operation_name', 'مفقود');
@@ -370,7 +446,8 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    alert(`تم تسجيل السند رقم #${serial} كـ "${label}" بنجاح!`);
+                    const bondTypeArabic = (currentType === 'disbursement') ? 'سند الصرف' : 'سند الاستلام';
+                    alert(`تم تسجيل ${bondTypeArabic} رقم #${serial} كـ "${label}" بنجاح!`);
                     advanceToNextBond(result);
                 } else {
                     alert('Error saving record. Check server logs.');
@@ -390,6 +467,9 @@
             saveBtn.innerText = 'SAVING...';
 
             const formData = new FormData(e.target);
+            if (!formData.has('type')) {
+                formData.append('type', currentType);
+            }
 
             try {
                 const response = await fetch('/bonds/store', {
@@ -412,8 +492,11 @@
                         }
                     }
 
-                    alert('Bond #' + document.getElementById('bond_serial').value + ' saved successfully!');
+                    const bondTypeArabic = (currentType === 'disbursement') ? 'سند الصرف' : 'سند الاستلام';
+                    alert(`تم حفظ ${bondTypeArabic} رقم #${document.getElementById('bond_serial').value} بنجاح!`);
                     advanceToNextBond(result);
+                } else {
+                    alert('Error saving bond. Please verify fields.');
                 }
             } catch (error) {
                 alert('Error saving bond. Check console.');
@@ -437,13 +520,16 @@
             document.getElementById('bond_serial').value = result.next_serial;
             document.querySelectorAll('.current-serial-display').forEach(el => el.innerText = result.next_serial);
 
+            // Re-assert bond type
+            document.getElementById('hidden_bond_record_type').value = currentType;
+
             // Always return to normal mode for the next bond
             switchBondMode('normal');
 
             // Reset items table
             document.querySelector('#itemsTable tbody').innerHTML = `
                 <tr>
-                    <td class="border p-1"><input type="text" name="items[0][description]" class="w-full p-2 outline-none item-desc-input" required placeholder="Item description..." dir="auto"></td>
+                    <td class="border p-1"><input type="text" name="items[0][description]" list="items_list" class="w-full p-2 outline-none item-desc-input" required placeholder="Item description..." dir="auto"></td>
                     <td class="border p-1"><input type="number" name="items[0][quantity]" step="any" class="w-full p-2 outline-none item-qty-input" required placeholder="0.00"></td>
                     <td class="border text-center"><button type="button" onclick="removeRow(this)" class="text-red-500 font-bold hover:text-red-700 p-1">✕</button></td>
                 </tr>`;

@@ -13,22 +13,29 @@ use Illuminate\Support\Str;
 
 class BondController extends Controller
 {
-    public function create()
+    public function create(Request $request)
     {
-        // 1. Fetch the most recent bond to get the previous date and serial format
-        $lastBond = Bond::latest('id')->first();
+        $type = $request->query('type', Bond::TYPE_RECEIPT);
+        if (!in_array($type, [Bond::TYPE_RECEIPT, Bond::TYPE_DISBURSEMENT])) {
+            $type = Bond::TYPE_RECEIPT;
+        }
+
+        // 1. Fetch the most recent bond OF THIS TYPE to get previous date and serial format
+        $lastBond = Bond::where('type', $type)->latest('id')->first();
 
         // 2. Handle Serial Logic (Padding zeros)
-        $lastSerial = $lastBond ? $lastBond->bond_serial : '3000';
-        $nextNumber = (int) $lastSerial + 1;
-        // We use the length of the previous serial to keep the padding consistent (e.g., 03154 -> 5 digits)
-        $nextSerial = str_pad($nextNumber, strlen($lastSerial), '0', STR_PAD_LEFT);
+        if ($lastBond) {
+            $lastSerial = $lastBond->bond_serial;
+            $nextNumber = (int) $lastSerial + 1;
+            $nextSerial = str_pad($nextNumber, strlen($lastSerial), '0', STR_PAD_LEFT);
+        } else {
+            // Default starting serial for new sequence
+            $nextSerial = ($type === Bond::TYPE_DISBURSEMENT) ? '0001' : '3000';
+        }
 
         // 3. Handle Date Logic (Persisting previous date)
-        // Fix: Define the missing variable here
         $defaultDate = $lastBond ? $lastBond->date : date('Y-m-d');
 
-        // dd($nextSerial);
         // 4. Fetch unique receiver names for the datalist (exclude cancelled & missing placeholders)
         $receivers = Bond::where('received_from', '!=', '--- N/A ---')
             ->where('received_from', '!=', 'مفقود')
@@ -40,20 +47,58 @@ class BondController extends Controller
             ->orderBy('received_from', 'asc')
             ->pluck('received_from');
 
-        // 2. Fetch unique item descriptions for suggestions
+        // 5. Fetch unique item descriptions for suggestions
         $itemSuggestions = BondItem::distinct()
             ->orderBy('item_description', 'asc')
             ->pluck('item_description');
 
-        // 5. Return view with all variables defined
-        return view('bonds.create', compact('nextSerial', 'defaultDate', 'receivers', 'itemSuggestions'));
+        // 6. Return view with all variables defined
+        return view('bonds.create', compact('type', 'nextSerial', 'defaultDate', 'receivers', 'itemSuggestions'));
     }
 
+    public function createDisbursement(Request $request)
+    {
+        $request->merge(['type' => Bond::TYPE_DISBURSEMENT]);
+        return $this->create($request);
+    }
+
+    public function nextSerial(Request $request)
+    {
+        $type = $request->query('type', Bond::TYPE_RECEIPT);
+        if (!in_array($type, [Bond::TYPE_RECEIPT, Bond::TYPE_DISBURSEMENT])) {
+            $type = Bond::TYPE_RECEIPT;
+        }
+
+        $lastBond = Bond::where('type', $type)->latest('id')->first();
+
+        if ($lastBond) {
+            $lastSerial = $lastBond->bond_serial;
+            $nextNumber = (int) $lastSerial + 1;
+            $nextSerial = str_pad($nextNumber, strlen($lastSerial), '0', STR_PAD_LEFT);
+            $defaultDate = $lastBond->date;
+        } else {
+            $nextSerial = ($type === Bond::TYPE_DISBURSEMENT) ? '0001' : '3000';
+            $defaultDate = date('Y-m-d');
+        }
+
+        return response()->json([
+            'success' => true,
+            'type' => $type,
+            'next_serial' => $nextSerial,
+            'default_date' => $defaultDate
+        ]);
+    }
 
     public function store(Request $request)
     {
         return DB::transaction(function () use ($request) {
             $data = $request->all();
+
+            $type = $request->input('type', Bond::TYPE_RECEIPT);
+            if (!in_array($type, [Bond::TYPE_RECEIPT, Bond::TYPE_DISBURSEMENT])) {
+                $type = Bond::TYPE_RECEIPT;
+            }
+            $data['type'] = $type;
 
             $isCancelled = $request->input('bond_type') === 'cancelled' 
                 || $request->input('received_from') === 'ملغي'
@@ -85,7 +130,7 @@ class BondController extends Controller
                 $file = $request->file('bond_image');
                 $extension = $file->getClientOriginalExtension();
                 $cleanSerial = preg_replace('/[^0-9a-zA-Z_-]/', '', (string)$request->input('bond_serial', 'bond'));
-                $safeFilename = 'bond_' . $cleanSerial . '_' . time() . '_' . Str::random(4) . '.' . $extension;
+                $safeFilename = 'bond_' . $type . '_' . $cleanSerial . '_' . time() . '_' . Str::random(4) . '.' . $extension;
                 $path = $file->storeAs('bonds', $safeFilename, 'public');
                 $data['bond_link'] = '/storage/' . $path;
             }
@@ -103,12 +148,13 @@ class BondController extends Controller
                     }
                 }
             }
-            $currentSerial = $request->bond_serial; // e.g., "03154"
+            $currentSerial = $request->bond_serial; // e.g., "03154" or "0001"
             $nextNumber = (int) $currentSerial + 1;
             $formattedNext = str_pad($nextNumber, strlen($currentSerial), '0', STR_PAD_LEFT);
 
             return response()->json([
                 'success' => true, 
+                'type' => $type,
                 'next_serial' => $formattedNext,
                 'saved_date'  => $bond->date // Send the date back to keep the form consistent
             ]);
@@ -274,6 +320,7 @@ class BondController extends Controller
             // 1. Prepare Data
             $data = $request->only([
                 'bond_serial',
+                'type',
                 'date',
                 'operation_name',
                 'received_from',
@@ -281,6 +328,9 @@ class BondController extends Controller
                 'note',
                 'bond_link'
             ]);
+            if (isset($data['type']) && !in_array($data['type'], [Bond::TYPE_RECEIPT, Bond::TYPE_DISBURSEMENT])) {
+                unset($data['type']);
+            }
 
             $isCancelled = $request->input('bond_type') === 'cancelled' 
                 || $request->input('received_from') === 'ملغي'

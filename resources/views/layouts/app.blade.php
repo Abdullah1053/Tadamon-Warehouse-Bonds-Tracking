@@ -17,9 +17,14 @@
                 <a href="{{ route('receivers.normalize') }}" class="hover:text-blue-200 transition {{ request()->routeIs('receivers.*') ? 'text-white font-semibold underline underline-offset-4' : 'text-blue-100' }}">Normalize Receivers</a>
             </div>
         </div>
-        <div>
-            <a href="{{ route('bonds.create') }}" class="bg-white text-blue-600 px-4 py-2 rounded shadow font-bold hover:bg-blue-50 transition">
-                + New Paper Bond
+        <div class="flex items-center gap-2">
+            <a href="{{ route('bonds.create', ['type' => 'receipt']) }}" class="inline-flex items-center gap-1.5 bg-blue-700 hover:bg-blue-800 text-white px-3.5 py-2 rounded-lg shadow-sm text-xs font-bold transition border border-blue-500">
+                <span>📥</span>
+                <span>+ سند استلام مواد</span>
+            </a>
+            <a href="{{ route('bonds.createDisbursement') }}" class="inline-flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2 rounded-lg shadow-sm text-xs font-bold transition border border-purple-400">
+                <span>📤</span>
+                <span>+ سند صرف مواد</span>
             </a>
         </div>
     </div>

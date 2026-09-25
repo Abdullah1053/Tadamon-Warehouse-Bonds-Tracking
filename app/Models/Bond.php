@@ -8,19 +8,48 @@ class Bond extends Model
 {
     //
 
-protected $fillable = [
-    'stack_id',
-    'bond_serial',
-    'note',
-    'bond_link',
-    'date',
-    'operation_name',
-    'received_from',
-    'car_number',
-    'is_missing'
-];
+    public const TYPE_RECEIPT = 'receipt';
+    public const TYPE_DISBURSEMENT = 'disbursement';
+
+    protected $fillable = [
+        'stack_id',
+        'type',
+        'bond_serial',
+        'note',
+        'bond_link',
+        'date',
+        'operation_name',
+        'received_from',
+        'car_number',
+        'is_missing'
+    ];
+
     public function items() { return $this->hasMany(BondItem::class); }
     public function stack() { return $this->belongsTo(Stack::class); }
+
+    /**
+     * Check if this bond is a Material Receipt Bond (سند استلام مواد).
+     */
+    public function isReceipt(): bool
+    {
+        return empty($this->type) || $this->type === self::TYPE_RECEIPT;
+    }
+
+    /**
+     * Check if this bond is a Material Disbursement Bond (سند صرف مواد).
+     */
+    public function isDisbursement(): bool
+    {
+        return $this->type === self::TYPE_DISBURSEMENT;
+    }
+
+    /**
+     * Get Arabic label for bond type.
+     */
+    public function getTypeLabelAttribute(): string
+    {
+        return $this->isDisbursement() ? 'سند صرف مواد' : 'سند استلام مواد';
+    }
 
     /**
      * Check if the bond is cancelled (physical paper is attached, but voided).

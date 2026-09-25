@@ -30,8 +30,11 @@
             @foreach ($unassignedBonds as $bond)
                 <tr class="border-b hover:bg-yellow-50" id="row-{{ $bond->id }}">
                     <td class="p-3"><input type="checkbox" class="bond-checkbox" value="{{ $bond->id }}"></td>
-                    <td class="p-3 font-bold {{ $bond->isMissing() ? 'text-red-600' : ($bond->isCancelled() ? 'text-amber-600' : 'text-blue-600') }}">
+                    <td class="p-3 font-bold {{ $bond->isMissing() ? 'text-red-600' : ($bond->isCancelled() ? 'text-amber-600' : ($bond->isDisbursement() ? 'text-purple-600' : 'text-blue-600')) }}">
                         #{{ $bond->bond_serial }}
+                        @if ($bond->isDisbursement())
+                            <span class="bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded text-[10px] font-bold">صرف</span>
+                        @endif
                         @if ($bond->isMissing())
                             <span class="bg-red-100 text-red-700 border border-red-200 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase">مفقود</span>
                         @elseif ($bond->isCancelled())

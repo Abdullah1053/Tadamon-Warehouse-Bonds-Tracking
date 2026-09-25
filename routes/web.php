@@ -10,6 +10,8 @@ Route::get('/', [StackController::class, 'index'])->name('dashboard');
 
 // Bond Entry
 Route::get('/bonds/create', [BondController::class, 'create'])->name('bonds.create');
+Route::get('/bonds/create-disbursement', [BondController::class, 'createDisbursement'])->name('bonds.createDisbursement');
+Route::get('/bonds/next-serial', [BondController::class, 'nextSerial'])->name('bonds.nextSerial');
 Route::post('/bonds/store', [BondController::class, 'store'])->name('bonds.store');
 Route::get('/bonds', [BondController::class, 'index'])->name('bonds.index');
 Route::post('/bonds/bulk-assign', [BondController::class, 'bulkAssign'])->name('bonds.bulkAssign');

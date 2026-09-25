@@ -3,8 +3,11 @@
 <div class="max-w-3xl mx-auto bg-white p-10 shadow-lg border border-gray-200" id="printableBond">
     <div class="flex justify-between border-b-2 border-black pb-4 mb-6">
         <div>
-            <h1 class="text-xl font-bold">Material Delivery Bond</h1>
-            <p class="text-sm text-gray-600">Warehouse Pro System</p>
+            <div class="flex items-center gap-2">
+                <span class="text-xl">{{ $bond->isDisbursement() ? '📤' : '📥' }}</span>
+                <h1 class="text-xl font-bold">{{ $bond->isDisbursement() ? 'سند صرف مواد (Material Disbursement Bond)' : 'سند استلام مواد (Material Receipt Bond)' }}</h1>
+            </div>
+            <p class="text-sm text-gray-600">Warehouse Pro System &bull; <span class="font-semibold">{{ $bond->type_label }}</span></p>
         </div>
         <div class="text-right">
             <p class="text-red-600 font-bold text-2xl">№ {{ $bond->bond_serial }}</p>
@@ -25,7 +28,9 @@
     <div class="grid grid-cols-2 gap-y-4 mb-8">
         <div class="text-sm"><strong>Operation:</strong> {{ $bond->operation_name }}</div>
         <div class="text-sm"><strong>Vehicle:</strong> {{ $bond->car_number ?? 'N/A' }}</div>
-        <div class="text-sm col-span-2"><strong>Received From:</strong> {{ $bond->received_from }}</div>
+        <div class="text-sm col-span-2">
+            <strong>{{ $bond->isDisbursement() ? 'صُرف إلى (Disbursed To):' : 'وارد من (Received From):' }}</strong> {{ $bond->received_from }}
+        </div>
     </div>
 
     <table class="w-full border-collapse border border-black mb-10">

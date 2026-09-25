@@ -49,29 +49,38 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-5 rounded-xl border border-gray-200">
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Serial</label>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">نوع السند (Bond Type)</label>
+                    <select name="type" class="w-full border border-gray-300 p-2.5 rounded-lg font-bold text-gray-800 focus:ring-2 focus:ring-orange-400 focus:bg-white transition">
+                        <option value="receipt" {{ $bond->isReceipt() ? 'selected' : '' }}>📥 سند استلام مواد (Receipt)</option>
+                        <option value="disbursement" {{ $bond->isDisbursement() ? 'selected' : '' }}>📤 سند صرف مواد (Disbursement)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">رقم السند (Serial Number)</label>
                     <input type="text" name="bond_serial" value="{{ $bond->bond_serial }}" class="w-full border border-gray-300 p-2.5 rounded-lg font-bold text-gray-800 focus:ring-2 focus:ring-orange-400 focus:bg-white transition"
                         required>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Date</label>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">التاريخ (Date)</label>
                     <input type="date" name="date" value="{{ $bond->date }}" class="w-full border border-gray-300 p-2.5 rounded-lg font-semibold focus:ring-2 focus:ring-orange-400 focus:bg-white transition"
                         required>
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">رقم السيارة (Vehicle Number)</label>
+                    <input type="text" name="car_number" id="edit_field_car_number" value="{{ $bond->car_number }}"
+                        class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-orange-400 focus:bg-white transition">
+                </div>
                 <div class="col-span-1 md:col-span-2">
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Operation Name</label>
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">اسم العملية / المشروع (Operation Name)</label>
                     <input type="text" name="operation_name" id="edit_field_operation_name" value="{{ $bond->operation_name }}" dir="auto"
                         class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-orange-400 focus:bg-white transition" required>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Received From</label>
+                <div class="col-span-1 md:col-span-2">
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1" id="edit_label_received_from">
+                        {{ $bond->isDisbursement() ? 'صُرف إلى / المستلم (Disbursed To)' : 'وارد من / المورّد (Received From)' }}
+                    </label>
                     <input type="text" name="received_from" id="edit_field_received_from" value="{{ $bond->received_from }}" dir="auto"
                         class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-orange-400 focus:bg-white transition" required>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1">Vehicle Number</label>
-                    <input type="text" name="car_number" id="edit_field_car_number" value="{{ $bond->car_number }}"
-                        class="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-orange-400 focus:bg-white transition">
                 </div>
 
                 <div class="col-span-1 md:col-span-2">
