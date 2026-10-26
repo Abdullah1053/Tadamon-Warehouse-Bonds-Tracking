@@ -48,8 +48,16 @@ class PdfExportService
             }
         }
 
-        // Fallback or explicit DomPDF rendering
-        return $this->renderWithDomPdf($html, $tempPdfPath);
+        if ($preferredEngine === 'dompdf') {
+            return $this->renderWithDomPdf($html, $tempPdfPath);
+        }
+
+        // When headless browser (Chrome/Chromium) is not installed on the server,
+        // do NOT fall back to DomPDF for Arabic RTL documents. DomPDF lacks Arabic glyph shaping
+        // and BiDi rendering, resulting in backwards/disconnected characters and '????'.
+        // Returning null tells the controller to seamlessly open the report with the browser's
+        // native, high-fidelity vector PDF engine (Cairo font, exact colors, 100% Arabic support).
+        return null;
     }
 
     /**

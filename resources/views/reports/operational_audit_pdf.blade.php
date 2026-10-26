@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تقرير التدقيق الرقابي والتحليل الزمني - مستودع التضامن (2019-2026)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         /* Modern Executive Document Styling */
         @page {
@@ -36,7 +39,7 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Arial, 'DejaVu Sans', sans-serif;
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
             background-color: #f8fafc;
             color: var(--slate-800);
             margin: 0;
@@ -539,11 +542,8 @@
             <span>تقرير التدقيق الرقابي والتحليل الزمني (مستودع التضامن 2019 - 2026)</span>
         </div>
         <div class="toolbar-actions">
-            <a href="{{ route('stacks.exportAuditPdf', ['download' => 1]) }}" class="btn btn-success" title="تحميل التقرير كملف PDF رسمي">
-                <span>⬇️ تحميل كملف PDF</span>
-            </a>
-            <button onclick="window.print()" class="btn btn-primary" title="طباعة فورية أو حفظ باستخدام المتصفح">
-                <span>🖨️ طباعة التقرير</span>
+            <button onclick="window.print()" class="btn btn-primary" style="font-size: 14px; padding: 9px 20px; font-weight: 700;" title="طباعة فورية أو حفظ باستخدام المتصفح كـ PDF معتمد عالي الدقة">
+                <span>🖨️ طباعة / حفظ كـ PDF رسمي</span>
             </button>
             <a href="{{ route('dashboard') }}" class="btn btn-secondary">
                 <span>↩️ العودة للوحة التحكم</span>
