@@ -23,14 +23,14 @@ class PdfExportService
     ];
 
     /**
-     * Generate PDF from an HTML string and return the absolute path to the generated PDF.
+     * Generate PDF from an HTML string and return the absolute path to the generated PDF,
+     * or null if neither engine is available on the current host.
      *
      * @param string $html Full HTML markup to render
      * @param string $preferredEngine 'auto', 'chrome', or 'dompdf'
-     * @return string Path to temporary PDF file
-     * @throws \RuntimeException
+     * @return string|null Path to temporary PDF file or null
      */
-    public function generatePdfFromHtml(string $html, string $preferredEngine = 'auto'): string
+    public function generatePdfFromHtml(string $html, string $preferredEngine = 'auto'): ?string
     {
         $tempPdfPath = tempnam(sys_get_temp_dir(), 'audit_report_') . '.pdf';
 
@@ -99,21 +99,39 @@ class PdfExportService
     }
 
     /**
-     * Render HTML to PDF using DomPDF.
+     * Render HTML to PDF using DomPDF with safety guards.
      */
-    protected function renderWithDomPdf(string $html, string $outputPath): string
+    protected function renderWithDomPdf(string $html, string $outputPath): ?string
     {
-        $domPdf = Pdf::loadHTML($html);
-        $domPdf->setPaper('a4', 'portrait');
-        $domPdf->setOption(['isRemoteEnabled' => true, 'isHtml5ParserEnabled' => true]);
-        
-        $output = $domPdf->output();
-        file_put_contents($outputPath, $output);
-
-        if (!file_exists($outputPath) || filesize($outputPath) === 0) {
-            throw new \RuntimeException("DomPDF failed to generate valid output file.");
+        if (!class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+            Log::warning('DomPDF package is not installed on this host environment.');
+            return null;
         }
 
-        return $outputPath;
+        try {
+            set_time_limit(180);
+            ini_set('memory_limit', '512M');
+
+            $domPdf = Pdf::loadHTML($html);
+            $domPdf->setPaper('a4', 'portrait');
+            $domPdf->setOption([
+                'isRemoteEnabled' => false,
+                'isHtml5ParserEnabled' => true,
+                'defaultFont' => 'DejaVu Sans'
+            ]);
+            
+            $output = $domPdf->output();
+            file_put_contents($outputPath, $output);
+
+            if (!file_exists($outputPath) || filesize($outputPath) === 0) {
+                Log::warning('DomPDF output file was empty or missing.');
+                return null;
+            }
+
+            return $outputPath;
+        } catch (\Throwable $e) {
+            Log::warning('DomPDF generation failed: ' . $e->getMessage());
+            return null;
+        }
     }
 }

@@ -140,6 +140,7 @@ class OperationalAuditService
 
             // Gaps between recorded dates in this year
             $intraYearGaps = [];
+            $routinePausesCount = 0;
             for ($i = 0; $i < count($dates) - 1; $i++) {
                 $curr = Carbon::parse($dates[$i]);
                 $next = Carbon::parse($dates[$i + 1]);
@@ -148,14 +149,21 @@ class OperationalAuditService
                     $gapStart = $curr->copy()->addDay()->format('Y-m-d');
                     $gapEnd = $next->copy()->subDay()->format('Y-m-d');
                     $gapDays = $diff - 1;
-                    $intraYearGaps[] = [
-                        'from_date'   => $gapStart,
-                        'to_date'     => $gapEnd,
-                        'days'        => $gapDays,
-                        'prior_work'  => $dates[$i],
-                        'next_work'   => $dates[$i + 1],
-                        'description' => $this->describeIntraGap($year, $gapDays, $gapStart, $gapEnd),
-                    ];
+                    
+                    if ($gapDays <= 2) {
+                        // Standard 1 to 2 day weekend / single holiday pause
+                        $routinePausesCount++;
+                    } else {
+                        // Noticeable operational pause (>= 3 days)
+                        $intraYearGaps[] = [
+                            'from_date'   => $gapStart,
+                            'to_date'     => $gapEnd,
+                            'days'        => $gapDays,
+                            'prior_work'  => $dates[$i],
+                            'next_work'   => $dates[$i + 1],
+                            'description' => $this->describeIntraGap($year, $gapDays, $gapStart, $gapEnd),
+                        ];
+                    }
                 }
             }
 
@@ -178,6 +186,7 @@ class OperationalAuditService
                 'max_date'             => $dates->last() ?? null,
                 'official_intervals'   => $this->officialIntervals[$year] ?? [],
                 'intra_year_gaps'      => $intraYearGaps,
+                'routine_pauses_count' => $routinePausesCount,
                 'narrative'            => $yearNarrative,
             ];
 

@@ -551,6 +551,19 @@
         </div>
     </div>
 
+    @if(request('autoprint') == 1 || session('info'))
+    <div class="no-print" style="background: #eff6ff; border-bottom: 2px solid #3b82f6; padding: 10px 24px; font-size: 9.5pt; color: #1e40af; display: flex; align-items: center; justify-content: space-between;" dir="rtl">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 16pt;">🖨️</span>
+            <span>
+                <strong>توليد التقرير كـ PDF:</strong>
+                {{ session('info') ?? 'تم فتح نافذة الطباعة تلقائياً لتصدير التقرير كملف PDF معتمد. يمكنك اختيار "حفظ بتنسيق PDF" (Save as PDF).' }}
+            </span>
+        </div>
+        <button onclick="this.parentElement.remove()" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #1e40af; font-weight: bold;">&times;</button>
+    </div>
+    @endif
+
     <div class="container">
 
         <!-- Report Header -->
@@ -804,9 +817,16 @@
                         <span style="font-weight: 800; color: #1e3a8a; font-size: 10pt;">
                             🗓️ السنة: {{ $yr }} &nbsp;|&nbsp; عدد السندات: {{ $st['bonds_count'] }} &nbsp;|&nbsp; الأيام النشطة: {{ $st['active_days'] }} من أصل {{ $st['calendar_days'] }} يوماً
                         </span>
-                        <span class="badge {{ count($st['intra_year_gaps']) > 0 ? 'badge-warning' : 'badge-success' }}">
-                            {{ count($st['intra_year_gaps']) }} فترات توقف مسجلة
-                        </span>
+                        <div>
+                            <span class="badge {{ count($st['intra_year_gaps']) > 0 ? 'badge-warning' : 'badge-success' }}">
+                                {{ count($st['intra_year_gaps']) }} فترات توقف رئيسية
+                            </span>
+                            @if(($st['routine_pauses_count'] ?? 0) > 0)
+                                <span class="badge badge-slate" title="عطل أسبوعية روتينية قصيرة">
+                                    + {{ $st['routine_pauses_count'] }} عطلة أسبوعية اعتيادية
+                                </span>
+                            @endif
+                        </div>
                     </div>
 
                     <div style="font-size: 8.5pt; color: #475569; margin-bottom: 6px; line-height: 1.4;">
@@ -972,6 +992,16 @@
         </footer>
 
     </div>
+
+    @if(request('autoprint') == 1)
+    <script>
+        window.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        });
+    </script>
+    @endif
 
 </body>
 </html>

@@ -237,16 +237,24 @@ class StackController extends Controller
             $preferredEngine = $request->query('engine', 'auto');
             $pdfPath = $pdfService->generatePdfFromHtml($html, $preferredEngine);
 
-            $fileName = 'تقرير_التدقيق_الرقابي_مستودع_التضامن_2019_2026.pdf';
+            if ($pdfPath && file_exists($pdfPath) && filesize($pdfPath) > 500) {
+                $fileName = 'تقرير_التدقيق_الرقابي_مستودع_التضامن_2019_2026.pdf';
+                return response()->download($pdfPath, $fileName, [
+                    'Content-Type' => 'application/pdf',
+                ])->deleteFileAfterSend(true);
+            }
 
-            return response()->download($pdfPath, $fileName, [
-                'Content-Type' => 'application/pdf',
-            ])->deleteFileAfterSend(true);
+            // If server-side generation is not available (e.g. headless browser or DomPDF missing on remote server),
+            // seamlessly open the report in the browser with the native PDF print dialog triggered automatically!
+            return redirect()->route('stacks.previewAuditReport', ['autoprint' => 1])
+                ->with('info', 'تم تحويلك إلى نافذة التقرير والطباعة كـ PDF تلقائياً.');
         } catch (\Throwable $e) {
             Log::error('StackController::exportAuditPdf failed: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
-            return back()->with('error', 'حدث خطأ أثناء إنشاء ملف PDF للتدقيق: ' . $e->getMessage());
+            // Fallback to client-side native PDF rendering instead of silent failure/reload
+            return redirect()->route('stacks.previewAuditReport', ['autoprint' => 1])
+                ->with('info', 'تم تحويلك إلى نافذة التقرير والطباعة كـ PDF تلقائياً.');
         }
     }
 }

@@ -31,6 +31,33 @@
     </div>
 </nav>
     <div class="container mx-auto px-4">
+        @if(session('error'))
+            <div class="mb-4 bg-red-50 border-r-4 border-red-500 text-red-800 p-4 rounded-lg shadow-sm flex items-center justify-between" dir="rtl">
+                <div>
+                    <strong class="font-bold">تنبيه: </strong>
+                    <span>{{ session('error') }}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700 font-bold text-lg">&times;</button>
+            </div>
+        @endif
+        @if(session('success'))
+            <div class="mb-4 bg-green-50 border-r-4 border-green-500 text-green-800 p-4 rounded-lg shadow-sm flex items-center justify-between" dir="rtl">
+                <div>
+                    <strong class="font-bold">نجاح: </strong>
+                    <span>{{ session('success') }}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-green-500 hover:text-green-700 font-bold text-lg">&times;</button>
+            </div>
+        @endif
+        @if(session('info'))
+            <div class="mb-4 bg-blue-50 border-r-4 border-blue-500 text-blue-800 p-4 rounded-lg shadow-sm flex items-center justify-between" dir="rtl">
+                <div>
+                    <strong class="font-bold">معلومة: </strong>
+                    <span>{{ session('info') }}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-blue-500 hover:text-blue-700 font-bold text-lg">&times;</button>
+            </div>
+        @endif
         @yield('content')
     </div>
 </body>
