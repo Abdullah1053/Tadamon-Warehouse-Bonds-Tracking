@@ -11,6 +11,8 @@ use App\Models\Bond;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use ZipArchive;
+use App\Services\OperationalAuditService;
+use App\Services\PdfExportService;
 
 
 class StackController extends Controller
@@ -207,4 +209,45 @@ class StackController extends Controller
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ])->deleteFileAfterSend(true);
     }
+
+    /**
+     * Preview the full operational audit report in browser HTML format.
+     */
+    public function previewAuditReport(OperationalAuditService $auditService)
+    {
+        $data = $auditService->getAuditReportData();
+        return view('reports.operational_audit_pdf', $data);
+    }
+
+    /**
+     * Generate and download the professional Operational Audit Report PDF.
+     */
+    public function exportAuditPdf(
+        Request $request,
+        OperationalAuditService $auditService,
+        PdfExportService $pdfService
+    ) {
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
+
+        try {
+            $data = $auditService->getAuditReportData();
+            $html = view('reports.operational_audit_pdf', $data)->render();
+
+            $preferredEngine = $request->query('engine', 'auto');
+            $pdfPath = $pdfService->generatePdfFromHtml($html, $preferredEngine);
+
+            $fileName = 'تقرير_التدقيق_الرقابي_مستودع_التضامن_2019_2026.pdf';
+
+            return response()->download($pdfPath, $fileName, [
+                'Content-Type' => 'application/pdf',
+            ])->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            Log::error('StackController::exportAuditPdf failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('error', 'حدث خطأ أثناء إنشاء ملف PDF للتدقيق: ' . $e->getMessage());
+        }
+    }
 }
+

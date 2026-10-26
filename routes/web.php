@@ -26,6 +26,8 @@ Route::put('/bonds/{bond}', [BondController::class, 'update'])->name('bonds.upda
 
 
 // Stack & Export Actions
+Route::get('/stacks/export-audit-pdf', [StackController::class, 'exportAuditPdf'])->name('stacks.exportAuditPdf');
+Route::get('/stacks/preview-audit-report', [StackController::class, 'previewAuditReport'])->name('stacks.previewAuditReport');
 Route::get('/stacks/export-all-excel', [StackController::class, 'exportAllSingleExcel'])->name('stacks.exportAllExcel');
 Route::get('/stacks/export-all', [StackController::class, 'exportAll'])->name('stacks.exportAll');
 Route::get('/stacks/export/{stack}', [StackController::class, 'export'])->name('stacks.export');
