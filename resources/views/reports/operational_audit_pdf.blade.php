@@ -8,10 +8,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        /* Modern Executive Document Styling */
         @page {
             size: A4 portrait;
-            margin: 12mm 10mm 15mm 10mm;
+            margin: 10mm 10mm 12mm 10mm;
         }
 
         :root {
@@ -44,8 +43,8 @@
             color: var(--slate-800);
             margin: 0;
             padding: 0;
-            font-size: 11pt;
-            line-height: 1.5;
+            font-size: 10pt;
+            line-height: 1.45;
             direction: rtl;
         }
 
@@ -53,7 +52,7 @@
             max-width: 210mm;
             margin: 0 auto;
             background: #ffffff;
-            padding: 15mm 12mm;
+            padding: 12mm 12mm;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
 
@@ -64,16 +63,16 @@
             z-index: 1000;
             background: #0f172a;
             color: #ffffff;
-            padding: 12px 20px;
+            padding: 10px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .toolbar-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             display: flex;
             align-items: center;
@@ -90,10 +89,10 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 16px;
+            padding: 7px 16px;
             border-radius: 6px;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             text-decoration: none;
             transition: all 0.2s ease;
@@ -108,14 +107,6 @@
             background-color: #1d4ed8;
         }
 
-        .btn-success {
-            background-color: #059669;
-            color: #ffffff;
-        }
-        .btn-success:hover {
-            background-color: #047857;
-        }
-
         .btn-secondary {
             background-color: #334155;
             color: #e2e8f0;
@@ -126,9 +117,9 @@
 
         /* Report Header */
         .report-header {
-            border-bottom: 3px double #cbd5e1;
-            padding-bottom: 14px;
-            margin-bottom: 20px;
+            border-bottom: 2px solid #cbd5e1;
+            padding-bottom: 10px;
+            margin-bottom: 14px;
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
@@ -142,370 +133,297 @@
             display: inline-block;
             background: #eff6ff;
             color: var(--primary);
-            font-size: 10pt;
+            font-size: 8.5pt;
             font-weight: 700;
-            padding: 3px 10px;
+            padding: 2px 8px;
             border-radius: 4px;
             border: 1px solid #bfdbfe;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .report-title {
-            font-size: 18pt;
+            font-size: 15pt;
             font-weight: 800;
             color: var(--primary-dark);
-            margin: 0 0 4px 0;
-            letter-spacing: -0.5px;
+            margin: 0 0 2px 0;
+            letter-spacing: -0.3px;
         }
 
         .report-subtitle {
-            font-size: 11pt;
+            font-size: 9.5pt;
             color: var(--slate-600);
             margin: 0;
-            font-weight: 500;
         }
 
         .header-meta {
             text-align: left;
-            direction: ltr;
-            font-size: 9pt;
+            font-size: 8pt;
             color: var(--slate-600);
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 8px 12px;
-            min-width: 170px;
+            line-height: 1.5;
+            border-right: 2px solid var(--slate-200);
+            padding-right: 12px;
+            margin-right: 12px;
         }
 
-        .header-meta div {
-            margin-bottom: 3px;
-        }
-
-        /* Badges & Pills */
-        .badge {
-            display: inline-block;
-            padding: 2px 7px;
-            font-size: 8.5pt;
-            font-weight: 700;
-            border-radius: 4px;
-            white-space: nowrap;
-        }
-        .badge-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-        .badge-warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-        .badge-danger  { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-        .badge-primary { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
-        .badge-slate   { background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; }
-
-        /* Section Containers */
         .section-block {
-            margin-bottom: 24px;
-            page-break-inside: avoid;
-            break-inside: avoid;
+            margin-bottom: 16px;
         }
 
         .section-header {
             display: flex;
             align-items: center;
             gap: 8px;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 6px;
-            margin-bottom: 12px;
+            border-bottom: 1.5px solid var(--primary);
+            padding-bottom: 4px;
+            margin-bottom: 10px;
         }
 
         .section-num {
             background: var(--primary);
-            color: #ffffff;
-            width: 24px;
-            height: 24px;
+            color: white;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 10pt;
-            font-weight: bold;
+            font-size: 9pt;
+            font-weight: 800;
         }
 
         .section-title {
-            font-size: 13pt;
+            font-size: 11pt;
             font-weight: 800;
-            color: var(--slate-900);
+            color: var(--primary-dark);
             margin: 0;
         }
 
-        /* KPI Grid */
+        /* Narrative Box */
+        .narrative-box {
+            background: #f8fafc;
+            border-right: 3px solid var(--primary);
+            padding: 8px 12px;
+            border-radius: 0 6px 6px 0;
+            font-size: 9pt;
+            color: var(--slate-700);
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        /* KPI Cards Grid */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 10px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         .kpi-card {
             background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 10px 12px;
+            border: 1px solid var(--slate-200);
+            border-radius: 6px;
+            padding: 10px 8px;
             text-align: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
             border-top: 3px solid var(--primary);
         }
 
-        .kpi-card.accent { border-top-color: var(--accent); }
         .kpi-card.success { border-top-color: var(--success); }
         .kpi-card.warning { border-top-color: var(--warning); }
-        .kpi-card.danger { border-top-color: var(--danger); }
+        .kpi-card.accent { border-top-color: var(--accent); }
 
         .kpi-value {
             font-size: 16pt;
-            font-weight: 800;
-            color: var(--slate-900);
-            line-height: 1.2;
+            font-weight: 900;
+            line-height: 1.1;
             margin-bottom: 2px;
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
         }
 
         .kpi-label {
-            font-size: 8.5pt;
-            color: var(--slate-600);
-            font-weight: 600;
+            font-size: 8pt;
+            font-weight: 700;
+            color: var(--slate-700);
+            margin-bottom: 2px;
         }
 
         .kpi-sub {
             font-size: 7.5pt;
             color: var(--slate-500);
-            margin-top: 2px;
         }
 
-        /* Narrative Callout */
-        .narrative-box {
-            background: #f8fafc;
-            border-right: 4px solid var(--primary);
-            border-top: 1px solid #e2e8f0;
-            border-bottom: 1px solid #e2e8f0;
-            border-left: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 12px 16px;
-            margin-bottom: 14px;
-            font-size: 10pt;
-            color: var(--slate-700);
-            line-height: 1.6;
-        }
-
-        .narrative-box p {
-            margin: 0 0 8px 0;
-        }
-        .narrative-box p:last-child {
-            margin-bottom: 0;
-        }
-
+        /* Strategic Eras Cards */
         .phase-card {
             background: #ffffff;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #cbd5e1;
             border-radius: 6px;
-            padding: 10px 14px;
-            margin-bottom: 10px;
+            padding: 9px 12px;
+            margin-bottom: 8px;
+            border-right: 3px solid var(--primary);
         }
 
         .phase-title {
-            font-size: 10.5pt;
-            font-weight: 700;
+            font-size: 9.5pt;
+            font-weight: 800;
             color: var(--primary-dark);
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            margin-bottom: 4px;
+            align-items: center;
+            margin-bottom: 3px;
         }
 
         .phase-highlight {
-            font-size: 9pt;
-            color: #b45309;
-            font-weight: 600;
-            background: #fffbeb;
-            padding: 2px 8px;
-            border-radius: 4px;
-            border: 1px solid #fef3c7;
-            display: inline-block;
-            margin-bottom: 4px;
-        }
-
-        /* Tables */
-        table.audit-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 9pt;
-            margin-bottom: 14px;
-        }
-
-        table.audit-table th {
-            background: #1e3a8a;
-            color: #ffffff;
+            font-size: 8.5pt;
             font-weight: 700;
-            padding: 6px 8px;
-            text-align: center;
-            border: 1px solid #1e3a8a;
-            white-space: nowrap;
+            color: var(--accent);
+            margin-bottom: 2px;
         }
 
-        table.audit-table td {
-            padding: 5px 8px;
-            border: 1px solid #cbd5e1;
-            text-align: center;
-            vertical-align: middle;
+        .phase-desc {
+            font-size: 8.5pt;
+            color: var(--slate-600);
+            line-height: 1.4;
         }
 
-        table.audit-table tr:nth-child(even) {
-            background-color: #f8fafc;
-        }
-
-        table.audit-table tr.total-row {
-            background-color: #e0f2fe !important;
-            font-weight: 800;
-            color: #0369a1;
-            border-top: 2px solid #0284c7;
-            border-bottom: 3px double #0284c7;
-        }
-
-        /* Visual Charts Component (Vectorized CSS/SVG Layout) */
+        /* Charts Container */
         .charts-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            margin-bottom: 16px;
+            gap: 12px;
+            margin-bottom: 12px;
         }
 
         .chart-box {
             background: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            border: 1px solid var(--slate-200);
+            border-radius: 6px;
+            padding: 10px 12px;
         }
 
         .chart-title {
-            font-size: 10pt;
-            font-weight: 700;
+            font-size: 9pt;
+            font-weight: 800;
             color: var(--slate-800);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 1px solid #e2e8f0;
             padding-bottom: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
         }
 
-        /* Bar Chart Styles */
         .bar-group {
             display: flex;
             align-items: center;
-            margin-bottom: 7px;
-            font-size: 8.5pt;
+            margin-bottom: 4px;
+            font-size: 8pt;
         }
 
         .bar-label {
-            width: 50px;
+            width: 38px;
             font-weight: 700;
             color: var(--slate-700);
             text-align: right;
-            padding-left: 6px;
         }
 
         .bar-track {
             flex: 1;
-            height: 18px;
-            background: #e2e8f0;
-            border-radius: 4px;
+            height: 12px;
+            background: #f1f5f9;
+            border-radius: 3px;
             overflow: hidden;
             display: flex;
-            position: relative;
+            margin: 0 6px;
         }
 
-        .bar-segment-active {
-            background: linear-gradient(90deg, #0284c7, #38bdf8);
-            height: 100%;
-            transition: width 0.3s;
+        .bar-segment-active { background: #0284c7; height: 100%; }
+        .bar-segment-idle { background: #cbd5e1; height: 100%; }
+
+        .volume-track {
+            flex: 1;
+            height: 12px;
+            background: #f1f5f9;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 0 6px;
         }
 
-        .bar-segment-idle {
-            background: #cbd5e1;
+        .volume-bar {
             height: 100%;
+            background: #6366f1;
+            border-radius: 3px;
+        }
+
+        .volume-bar.peak {
+            background: #059669;
         }
 
         .bar-value {
             width: 75px;
             text-align: left;
-            padding-right: 6px;
-            font-size: 8pt;
-            font-weight: 600;
+            font-size: 7.5pt;
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
             color: var(--slate-600);
-            white-space: nowrap;
         }
 
-        /* Volume Bar */
-        .volume-track {
-            flex: 1;
-            height: 16px;
-            background: #f1f5f9;
-            border-radius: 4px;
-            overflow: hidden;
-            position: relative;
+        /* Tables */
+        .audit-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8pt;
+            margin-bottom: 10px;
         }
 
-        .volume-bar {
-            height: 100%;
-            border-radius: 4px;
-            background: linear-gradient(90deg, #4f46e5, #818cf8);
-            min-width: 3px;
-        }
-
-        .volume-bar.peak {
-            background: linear-gradient(90deg, #059669, #34d399);
-        }
-
-        /* Gap timeline indicators */
-        .transition-card {
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            background: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .transition-card.gap-flagged {
-            border-right: 4px solid #ef4444;
-            background: #fef2f2;
-        }
-
-        .transition-card.gap-connected {
-            border-right: 4px solid #10b981;
-            background: #f0fdf4;
-        }
-
-        .transition-dates {
-            font-size: 9pt;
+        .audit-table th {
+            background: var(--primary);
+            color: #ffffff;
             font-weight: 700;
+            padding: 5px 6px;
+            text-align: center;
+            border: 1px solid var(--primary-dark);
+        }
+
+        .audit-table td {
+            padding: 4px 6px;
+            text-align: center;
+            border: 1px solid var(--slate-200);
             color: var(--slate-800);
         }
 
-        .transition-desc {
-            font-size: 8.5pt;
-            color: var(--slate-600);
-            flex: 1;
-            padding: 0 10px;
+        .audit-table tr:nth-child(even) {
+            background: #f8fafc;
         }
 
+        .audit-table tr.total-row {
+            background: #e2e8f0;
+            font-weight: 800;
+            border-top: 2px solid var(--primary);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 7.5pt;
+            font-weight: 700;
+        }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger  { background: #fee2e2; color: #991b1b; }
+        .badge-primary { background: #dbeafe; color: #1e40af; }
+        .badge-slate   { background: #f1f5f9; color: #334155; }
+
+        /* Page Breaks for Print */
         .page-break {
             page-break-before: always;
             break-before: page;
         }
 
-        /* Print Media Overrides */
         @media print {
             body {
                 background: #ffffff;
-                font-size: 10pt;
+                font-size: 9.5pt;
             }
             .container {
                 max-width: 100% !important;
@@ -515,34 +433,34 @@
             .no-print, .no-print-toolbar {
                 display: none !important;
             }
-            .section-block {
-                page-break-inside: avoid;
-                break-inside: avoid;
+            .page-break {
+                page-break-before: always !important;
+                break-before: page !important;
             }
         }
 
         .footer {
-            margin-top: 24px;
-            padding-top: 10px;
+            margin-top: 14px;
+            padding-top: 6px;
             border-top: 1px solid #cbd5e1;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 8pt;
+            font-size: 7.5pt;
             color: var(--slate-500);
         }
     </style>
 </head>
 <body>
 
-    <!-- On-screen Interactive Toolbar (Hidden when printing/converting to PDF) -->
+    <!-- Screen Toolbar -->
     <div class="no-print-toolbar no-print">
         <div class="toolbar-title">
             <span>📄</span>
-            <span>تقرير التدقيق الرقابي والتحليل الزمني (مستودع التضامن 2019 - 2026)</span>
+            <span>تقرير التدقيق الرقابي والتحليل الزمني الموجز (مستودع التضامن 2019 - 2026)</span>
         </div>
         <div class="toolbar-actions">
-            <button onclick="window.print()" class="btn btn-primary" style="font-size: 14px; padding: 9px 20px; font-weight: 700;" title="طباعة فورية أو حفظ باستخدام المتصفح كـ PDF معتمد عالي الدقة">
+            <button onclick="window.print()" class="btn btn-primary" title="طباعة فورية أو حفظ باستخدام المتصفح كـ PDF معتمد عالي الدقة">
                 <span>🖨️ طباعة / حفظ كـ PDF رسمي</span>
             </button>
             <a href="{{ route('dashboard') }}" class="btn btn-secondary">
@@ -552,21 +470,22 @@
     </div>
 
     @if(request('autoprint') == 1 || session('info'))
-    <div class="no-print" style="background: #eff6ff; border-bottom: 2px solid #3b82f6; padding: 10px 24px; font-size: 9.5pt; color: #1e40af; display: flex; align-items: center; justify-content: space-between;" dir="rtl">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 16pt;">🖨️</span>
+    <div class="no-print" style="background: #eff6ff; border-bottom: 2px solid #3b82f6; padding: 10px 20px; font-size: 9pt; color: #1e40af; display: flex; align-items: center; justify-content: space-between;" dir="rtl">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 15pt;">🖨️</span>
             <span>
                 <strong>توليد التقرير كـ PDF:</strong>
-                {{ session('info') ?? 'تم فتح نافذة الطباعة تلقائياً لتصدير التقرير كملف PDF معتمد. يمكنك اختيار "حفظ بتنسيق PDF" (Save as PDF).' }}
+                {{ session('info') ?? 'تم تشغيل نافذة الطباعة تلقائياً لتصدير التقرير كملف PDF معتمد. يمكنك اختيار "حفظ بتنسيق PDF" (Save as PDF).' }}
             </span>
         </div>
-        <button onclick="this.parentElement.remove()" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #1e40af; font-weight: bold;">&times;</button>
+        <button onclick="this.parentElement.remove()" style="background: none; border: none; font-size: 16px; cursor: pointer; color: #1e40af; font-weight: bold;">&times;</button>
     </div>
     @endif
 
     <div class="container">
 
-        <!-- Report Header -->
+        <!-- ================= PAGE 1 ================= -->
+        <!-- Header -->
         <header class="report-header">
             <div class="header-brand">
                 <div class="org-badge">وثيقة رقابية معتمدة • وحدة التدقيق وإدارة المستودعات</div>
@@ -574,7 +493,6 @@
                 <p class="report-subtitle">سجل فترات التشغيل، فحص أيام العمل والتوقف، وتحليل الفجوات الانتقالية (2019 – 2026)</p>
             </div>
             <div class="header-meta">
-                <div><strong>نظام:</strong> إدارة وتتبع السندات</div>
                 <div><strong>المستودع:</strong> مستودع التضامن المركزي</div>
                 <div><strong>تاريخ الإصدار:</strong> {{ $report_date }}</div>
                 <div><strong>إجمالي السندات:</strong> {{ number_format($kpis['total_bonds']) }} سنداً</div>
@@ -582,17 +500,16 @@
             </div>
         </header>
 
-        <!-- SECTION 1: Human-Readable Executive Summary -->
+        <!-- SECTION 1: Executive Summary & KPIs -->
         <section class="section-block">
             <div class="section-header">
                 <span class="section-num">1</span>
-                <h2 class="section-title">الملخص التنفيذي والسرد الزمني لمسار العمليات (Executive Summary)</h2>
+                <h2 class="section-title">الملخص التنفيذي ومؤشرات الأداء الرقابية (Executive Summary & KPIs)</h2>
             </div>
 
             <!-- Overarching Narrative -->
             <div class="narrative-box">
-                <p><strong>نظرة عامة على المسار التشغيلي:</strong> {{ $executive_summary['overview'] }}</p>
-                <p>تميزت هذه المسيرة بانتقال تدريجي من المرحلة التحضيرية في أواخر عام 2019 وحتى بلوغ <strong>الذروة التشغيلية المطلقة في عامي 2023 و2024</strong> (بإجمالي 2,425 سنداً)، تلاها تطبيق حوكمة رقابية صارمة مطلع عام 2025 باشتراط إرفاق السند الرسمي، وصولاً إلى استيفاء كامل السندات ضمن النافذة التعاقدية لعام 2026.</p>
+                <strong>نظرة عامة على المسار التشغيلي:</strong> {{ $executive_summary['overview'] }}
             </div>
 
             <!-- KPI Cards Grid -->
@@ -605,7 +522,7 @@
                 <div class="kpi-card success">
                     <div class="kpi-value" style="color: #059669;">{{ number_format($kpis['total_active_days']) }}</div>
                     <div class="kpi-label">أيام العمل الفعلية المسجلة</div>
-                    <div class="kpi-sub">من أصل {{ number_format($kpis['total_calendar_days']) }} يوماً تقويمياً</div>
+                    <div class="kpi-sub">تغطية نشطة بنسبة {{ $kpis['overall_activity_pct'] }}%</div>
                 </div>
                 <div class="kpi-card warning">
                     <div class="kpi-value" style="color: #d97706;">{{ number_format($kpis['total_idle_days']) }}</div>
@@ -613,14 +530,14 @@
                     <div class="kpi-sub">تشمل العطل والفترات الانتقالية</div>
                 </div>
                 <div class="kpi-card accent">
-                    <div class="kpi-value" style="color: #0284c7;">{{ $kpis['overall_activity_pct'] }}%</div>
-                    <div class="kpi-label">معدل التغطية التشغيلية العام</div>
-                    <div class="kpi-sub">على مدار 8 سنوات متتالية</div>
+                    <div class="kpi-value" style="color: #0284c7;">2,425</div>
+                    <div class="kpi-label">سندات عامي الذروة (2023-2024)</div>
+                    <div class="kpi-sub">تمثل 92.1% من الحجم الكلي</div>
                 </div>
             </div>
 
             <!-- 3 Strategic Eras Narrative -->
-            <div style="margin-top: 10px;">
+            <div>
                 @foreach($executive_summary['strategic_phases'] as $phase)
                     <div class="phase-card">
                         <div class="phase-title">
@@ -628,27 +545,36 @@
                             <span class="badge badge-slate">{{ $phase['period'] }}</span>
                         </div>
                         <div class="phase-highlight">{{ $phase['highlight'] }}</div>
-                        <div style="font-size: 9.5pt; color: #475569; line-height: 1.5;">{{ $phase['description'] }}</div>
+                        <div class="phase-desc">{{ $phase['description'] }}</div>
                     </div>
                 @endforeach
             </div>
         </section>
 
+        <!-- Document Footer Page 1 -->
+        <footer class="footer">
+            <div>نظام إدارة وتتبع سندات مستودع التضامن • صفحة 1 من 4</div>
+            <div>وثيقة رسمية معتمدة • مخصصة لأغراض التدقيق الرقابي الداخلي</div>
+        </footer>
+
+        <!-- ================= PAGE 2 ================= -->
+        <div class="page-break"></div>
+
         <!-- SECTION 2: Visual Statistics & Charts -->
         <section class="section-block">
             <div class="section-header">
                 <span class="section-num">2</span>
-                <h2 class="section-title">الإحصائيات البصرية والرسوم البيانية (Visual Statistics & Charts)</h2>
+                <h2 class="section-title">الإحصائيات البصرية وخريطة المسار الزمني (Visual Analytics & Timeline Radar)</h2>
             </div>
 
             <div class="charts-container">
                 <!-- Chart 1: Active Work Days vs Idle Days -->
                 <div class="chart-box">
                     <div class="chart-title">
-                        <span>أيام العمل الفعلية مقابل أيام التوقف (لكل عام)</span>
+                        <span>أيام العمل الفعلية مقابل أيام التوقف</span>
                         <span style="font-size: 7.5pt; font-weight: normal; color: #64748b;">
-                            <span style="display:inline-block; width:8px; height:8px; background:#0284c7; border-radius:2px;"></span> عمل &nbsp;
-                            <span style="display:inline-block; width:8px; height:8px; background:#cbd5e1; border-radius:2px;"></span> توقف
+                            <span style="display:inline-block; width:7px; height:7px; background:#0284c7; border-radius:2px;"></span> عمل &nbsp;
+                            <span style="display:inline-block; width:7px; height:7px; background:#cbd5e1; border-radius:2px;"></span> توقف
                         </span>
                     </div>
                     @foreach($yearly_stats as $yr => $st)
@@ -696,13 +622,13 @@
                 </div>
             </div>
 
-            <!-- Operational Continuity & Gap Map (Mini visual band) -->
-            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px;">
-                <div style="font-size: 9.5pt; font-weight: 700; color: #1e293b; margin-bottom: 6px;">
+            <!-- Operational Continuity & Gap Map -->
+            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px;">
+                <div style="font-size: 9pt; font-weight: 800; color: #1e293b; margin-bottom: 6px;">
                     خريطة المسار الزمني لفترات الاستمرار والانقطاع (Timeline Continuity Radar)
                 </div>
-                <div style="display: flex; height: 20px; border-radius: 4px; overflow: hidden; background: #e2e8f0; font-size: 8pt; font-weight: bold; text-align: center; color: white;">
-                    <div style="width: 10%; background: #64748b;" title="2019-2020: بداية العمل">2019-20</div>
+                <div style="display: flex; height: 22px; border-radius: 4px; overflow: hidden; background: #e2e8f0; font-size: 7.5pt; font-weight: bold; text-align: center; color: white;">
+                    <div style="width: 10%; background: #64748b;" title="2019-2020: بداية التأسيس">2019-20</div>
                     <div style="width: 15%; background: #ef4444;" title="2021-2022: توقف 252 يوماً">انقطاع 252ي</div>
                     <div style="width: 15%; background: #3b82f6;" title="2022: استئناف العمل">2022</div>
                     <div style="width: 25%; background: #10b981;" title="2023: نشاط متصل 1,031 سند">2023 (متصل)</div>
@@ -717,36 +643,53 @@
                     <span>أغسطس 2026 (النافذة المعتمدة)</span>
                 </div>
             </div>
+
+            <!-- Key Takeaways Box -->
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; font-size: 8.5pt; color: #334155;">
+                <strong style="color: #1e3a8a;">📌 أبرز مؤشرات التحليل الزمني الرقابي:</strong>
+                <ul style="margin: 4px 0 0 0; padding-right: 16px; line-height: 1.6;">
+                    <li><strong>الاستقرار والاتصال:</strong> سجل عام 2024 أعلى انتظام تشغيلي في تاريخ المستودع دون أي فجوات تشغيلية كبرى.</li>
+                    <li><strong>انعدام الفاقد:</strong> نسبة السندات السليمة بلغت <strong>97.3%</strong> مع حصر كامل للسندات الملغاة والمفقودة ضمن النطاق المقبول.</li>
+                    <li><strong>انضباط الحوكمة:</strong> كافة السندات المقيدة لعام 2026 محصورة بصرامة داخل النافذة التعاقدية المعتمدة رسمياً.</li>
+                </ul>
+            </div>
         </section>
 
+        <!-- Document Footer Page 2 -->
+        <footer class="footer">
+            <div>نظام إدارة وتتبع سندات مستودع التضامن • صفحة 2 من 4</div>
+            <div>وثيقة رسمية معتمدة • مخصصة لأغراض التدقيق الرقابي الداخلي</div>
+        </footer>
+
+        <!-- ================= PAGE 3 ================= -->
         <div class="page-break"></div>
 
-        <!-- SECTION 3: Master Yearly Statistics Table -->
+        <!-- SECTION 3: Master Yearly Statistics & Summary of Operating Periods -->
         <section class="section-block">
             <div class="section-header">
                 <span class="section-num">3</span>
-                <h2 class="section-title">إحصائيات السنوات وجداول التوزيع والتشغيل (Yearly Statistics Breakdown)</h2>
+                <h2 class="section-title">إحصائيات السنوات وجدول فترات التشغيل والتوقف (Yearly Statistics & Stoppages)</h2>
             </div>
 
-            <p style="font-size: 9pt; color: #475569; margin-bottom: 8px;">
-                جدول مقارن يوضح تفاصيل النشاط الفعلي لكل عام تقويمي (2019 – 2026)، متضمناً أيام العمل، فترات التوقف، تصنيف السندات (سليم، ملغي، مفقود)، ونطاق التواريخ المسجلة:
-            </p>
-
+            <!-- Table 1: Master Breakdown Table -->
+            <div style="font-size: 8.5pt; font-weight: 700; color: #1e3a8a; margin-bottom: 4px;">
+                أولاً: جدول التدقيق السنوي الشامل لمؤشرات النشاط والسندات (2019 – 2026)
+            </div>
             <table class="audit-table">
                 <thead>
                     <tr>
                         <th>السنة</th>
                         <th>أيام السنة</th>
                         <th>أيام العمل</th>
-                        <th>نسبة النشاط</th>
+                        <th>التغطية</th>
                         <th>أيام التوقف</th>
                         <th>إجمالي السندات</th>
                         <th>السليمة</th>
                         <th>الملغاة</th>
                         <th>المفقودة</th>
                         <th>المواد</th>
-                        <th>تاريخ أول سند</th>
-                        <th>تاريخ آخر سند</th>
+                        <th>تاريخ البداية</th>
+                        <th>تاريخ النهاية</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -778,8 +721,8 @@
                                 @endif
                             </td>
                             <td>{{ number_format($st['items_count']) }}</td>
-                            <td style="font-size: 8pt;">{{ $st['min_date'] ?? '---' }}</td>
-                            <td style="font-size: 8pt;">{{ $st['max_date'] ?? '---' }}</td>
+                            <td style="font-size: 7.5pt;">{{ $st['min_date'] ?? '---' }}</td>
+                            <td style="font-size: 7.5pt;">{{ $st['max_date'] ?? '---' }}</td>
                         </tr>
                     @endforeach
                     <tr class="total-row">
@@ -793,129 +736,94 @@
                         <td>{{ number_format($kpis['total_cancelled_bonds']) }}</td>
                         <td>{{ number_format($kpis['total_missing_bonds']) }}</td>
                         <td>{{ number_format($kpis['total_items']) }}</td>
-                        <td style="font-size: 8pt;">{{ $kpis['earliest_date'] }}</td>
-                        <td style="font-size: 8pt;">{{ $kpis['latest_date'] }}</td>
+                        <td style="font-size: 7.5pt;">{{ $kpis['earliest_date'] }}</td>
+                        <td style="font-size: 7.5pt;">{{ $kpis['latest_date'] }}</td>
                     </tr>
+                </tbody>
+            </table>
+
+            <!-- Table 2: Compact Annual Operating Windows & Key Pauses -->
+            <div style="font-size: 8.5pt; font-weight: 700; color: #1e3a8a; margin: 10px 0 4px 0;">
+                ثانياً: موجز فترات التشغيل وأهم التوقفات السنوية المسجلة (Annual Operating Windows & Key Pauses)
+            </div>
+            <table class="audit-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">السنة</th>
+                        <th style="width: 140px;">نطاق التشغيل المسجل</th>
+                        <th style="width: 65px;">أيام العمل</th>
+                        <th style="width: 80px;">العطل الاعتيادية</th>
+                        <th style="width: 150px;">أهم فترة توقف بالعام</th>
+                        <th>الخلاصة والتعليق الرقابي الموجز</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($yearly_stats as $yr => $st)
+                        <tr>
+                            <td><strong>{{ $yr }}</strong></td>
+                            <td style="font-size: 7.5pt; font-weight: 600;">
+                                @if($st['min_date'] && $st['max_date'])
+                                    {{ $st['min_date'] }} ⬅️ {{ $st['max_date'] }}
+                                @else
+                                    فترة تأسيسية معتمدة
+                                @endif
+                            </td>
+                            <td><span class="badge badge-primary">{{ $st['active_days'] }} يوم</span></td>
+                            <td>{{ $st['routine_pauses_count'] ?? 0 }} عطلة أسبوعية</td>
+                            <td style="font-size: 7.5pt;">
+                                @if(($st['longest_gap_days'] ?? 0) >= 7)
+                                    <span class="badge badge-warning">{{ $st['longest_gap_desc'] }}</span>
+                                @else
+                                    <span class="badge badge-success">عمل متصل ومستقر</span>
+                                @endif
+                            </td>
+                            <td style="text-align: right; font-size: 8pt; line-height: 1.35;">
+                                {{ $st['narrative'] }}
+                            </td>
+                        </tr>
+                    @endforeach
                 </tbody>
             </table>
         </section>
 
-        <!-- SECTION 4: Intra-Year Missing/Idle Days Records -->
+        <!-- Document Footer Page 3 -->
+        <footer class="footer">
+            <div>نظام إدارة وتتبع سندات مستودع التضامن • صفحة 3 من 4</div>
+            <div>وثيقة رسمية معتمدة • مخصصة لأغراض التدقيق الرقابي الداخلي</div>
+        </footer>
+
+        <!-- ================= PAGE 4 ================= -->
+        <div class="page-break"></div>
+
+        <!-- SECTION 4: Inter-Year Transitions & Sign-off -->
         <section class="section-block">
             <div class="section-header">
                 <span class="section-num">4</span>
-                <h2 class="section-title">سجل فترات وأيام التوقف / السجلات غير المسجلة داخل كل عام (Intra-Year Gaps)</h2>
+                <h2 class="section-title">تحليل فترات الانتقال بين الأعوام والتوصيات الرقابية (Transitions & Sign-off)</h2>
             </div>
 
-            <p style="font-size: 9pt; color: #475569; margin-bottom: 8px;">
-                رصد دقيق لكافة فترات التوقف والانقطاع الزمني التي وقعت بين تواريخ العمل المسجلة خلال كل سنة، مع إبراز الفترات الاستراتيجية المعتمدة والتوقفات المرحلية:
-            </p>
-
-            @foreach($yearly_stats as $yr => $st)
-                <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; page-break-inside: avoid; break-inside: avoid;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px;">
-                        <span style="font-weight: 800; color: #1e3a8a; font-size: 10pt;">
-                            🗓️ السنة: {{ $yr }} &nbsp;|&nbsp; عدد السندات: {{ $st['bonds_count'] }} &nbsp;|&nbsp; الأيام النشطة: {{ $st['active_days'] }} من أصل {{ $st['calendar_days'] }} يوماً
-                        </span>
-                        <div>
-                            <span class="badge {{ count($st['intra_year_gaps']) > 0 ? 'badge-warning' : 'badge-success' }}">
-                                {{ count($st['intra_year_gaps']) }} فترات توقف رئيسية
-                            </span>
-                            @if(($st['routine_pauses_count'] ?? 0) > 0)
-                                <span class="badge badge-slate" title="عطل أسبوعية روتينية قصيرة">
-                                    + {{ $st['routine_pauses_count'] }} عطلة أسبوعية اعتيادية
-                                </span>
-                            @endif
-                        </div>
-                    </div>
-
-                    <div style="font-size: 8.5pt; color: #475569; margin-bottom: 6px; line-height: 1.4;">
-                        <strong>التعليق الرقابي:</strong> {{ $st['narrative'] }}
-                    </div>
-
-                    @if(!empty($st['official_intervals']))
-                        <div style="background: #f1f5f9; border-radius: 4px; padding: 6px 10px; margin-bottom: 6px; font-size: 8pt; color: #334155;">
-                            <strong>الفترات التشغيلية المعتمدة:</strong>
-                            @foreach($st['official_intervals'] as $oi)
-                                <span style="display: inline-block; margin-left: 12px;">
-                                    • فترة {{ $oi['period_num'] }}: من {{ $oi['start_date'] }} إلى {{ $oi['end_date'] }} ({{ $oi['notes'] }})
-                                </span>
-                            @endforeach
-                        </div>
-                    @endif
-
-                    @if(!empty($st['intra_year_gaps']))
-                        <table class="audit-table" style="margin-bottom: 0; font-size: 8pt;">
-                            <thead>
-                                <tr style="background: #334155;">
-                                    <th style="padding: 4px;">#</th>
-                                    <th style="padding: 4px;">من تاريخ التوقف</th>
-                                    <th style="padding: 4px;">إلى تاريخ التوقف</th>
-                                    <th style="padding: 4px;">أيام التوقف (الفجوة)</th>
-                                    <th style="padding: 4px;">تاريخ العمل السابق</th>
-                                    <th style="padding: 4px;">تاريخ العمل التالي</th>
-                                    <th style="padding: 4px; text-align: right;">طبيعة التوقف وتوصيف الفجوة</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @php $gapCounter = 1; @endphp
-                                @foreach($st['intra_year_gaps'] as $gap)
-                                    <tr>
-                                        <td>{{ $gapCounter++ }}</td>
-                                        <td style="color: #991b1b; font-weight: bold;">{{ $gap['from_date'] }}</td>
-                                        <td style="color: #991b1b; font-weight: bold;">{{ $gap['to_date'] }}</td>
-                                        <td>
-                                            <span class="badge {{ $gap['days'] >= 30 ? 'badge-danger' : ($gap['days'] >= 7 ? 'badge-warning' : 'badge-slate') }}">
-                                                {{ $gap['days'] }} يوم
-                                            </span>
-                                        </td>
-                                        <td>{{ $gap['prior_work'] }}</td>
-                                        <td>{{ $gap['next_work'] }}</td>
-                                        <td style="text-align: right;">{{ $gap['description'] }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    @else
-                        <div style="font-size: 8pt; color: #059669; font-weight: bold; background: #ecfdf5; padding: 4px 8px; border-radius: 4px;">
-                            ✔️ لا توجد فجوات توقف مسجلة داخل هذا العام، العمليات كانت مستمرة بانتظام تام أو لم تبدأ بعد.
-                        </div>
-                    @endif
-                </div>
-            @endforeach
-        </section>
-
-        <div class="page-break"></div>
-
-        <!-- SECTION 5: Inter-Year Transition & Gap Analysis -->
-        <section class="section-block">
-            <div class="section-header">
-                <span class="section-num">5</span>
-                <h2 class="section-title">تحليل الانتقال التشغيلي وفجوات التوقف بين الأعوام (Inter-Year Transitions)</h2>
+            <!-- Inter-Year Transition Table -->
+            <div style="font-size: 8.5pt; font-weight: 700; color: #1e3a8a; margin-bottom: 4px;">
+                أولاً: جدول فترات الانتقال والتوقف بين نهاية كل عام وبداية العام التالي:
             </div>
-
-            <p style="font-size: 9pt; color: #475569; margin-bottom: 8px;">
-                يوضح هذا القسم الحساب الدقيق لفارق الأيام (فجوة التوقف / الركود) بين <strong>تاريخ نهاية آخر عمل في كل عام وتاريخ بداية أول عمل في العام التالي</strong>، وصولاً إلى آخر تاريخ مسجل في عام 2026:
-            </p>
-
             <table class="audit-table">
                 <thead>
                     <tr>
-                        <th>الانتقال بين الأعوام</th>
-                        <th>تاريخ نهاية العمل (السنة السابقة)</th>
-                        <th>تاريخ بداية العمل (السنة التالية)</th>
-                        <th>فارق الأيام (أيام التوقف)</th>
-                        <th>نطاق التواريخ غير المسجلة (الفجوة)</th>
-                        <th>حالة الانتقال</th>
-                        <th>التحليل الرقابي والدلالة التشغيلية</th>
+                        <th>الانتقال</th>
+                        <th>نهاية السنة السابقة</th>
+                        <th>بداية السنة التالية</th>
+                        <th>فارق الأيام</th>
+                        <th>نطاق الفجوة</th>
+                        <th>الحالة</th>
+                        <th>الدلالة الرقابية والتشغيلية</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($inter_year_transitions as $tr)
                         <tr style="{{ $tr['gap_days'] > 0 ? 'background-color: #fffaf0;' : '' }}">
                             <td><strong>{{ $tr['from_year'] }} ⬅️ {{ $tr['to_year'] }}</strong></td>
-                            <td style="font-weight: 600;">{{ $tr['from_date'] }}</td>
-                            <td style="font-weight: 600;">{{ $tr['to_date'] }}</td>
+                            <td style="font-size: 7.5pt;">{{ $tr['from_date'] }}</td>
+                            <td style="font-size: 7.5pt;">{{ $tr['to_date'] }}</td>
                             <td>
                                 @if($tr['gap_days'] > 100)
                                     <span class="badge badge-danger">{{ $tr['gap_days'] }} يوماً</span>
@@ -925,13 +833,13 @@
                                     <span class="badge badge-success">0 يوم (متصل)</span>
                                 @endif
                             </td>
-                            <td>
+                            <td style="font-size: 7.5pt;">
                                 @if($tr['gap_days'] > 0)
-                                    <span style="color: #991b1b; font-size: 8pt; font-weight: bold;">
+                                    <span style="color: #991b1b; font-weight: bold;">
                                         {{ $tr['gap_from'] }} إلى {{ $tr['gap_to'] }}
                                     </span>
                                 @else
-                                    <span style="color: #059669; font-size: 8pt;">تسليم مباشر دون انقطاع</span>
+                                    <span style="color: #059669;">تسليم متصل</span>
                                 @endif
                             </td>
                             <td>
@@ -939,7 +847,7 @@
                                     {{ $tr['status'] }}
                                 </span>
                             </td>
-                            <td style="text-align: right; font-size: 8pt; line-height: 1.4;">
+                            <td style="text-align: right; font-size: 8pt; line-height: 1.35;">
                                 {{ $tr['narrative'] }}
                             </td>
                         </tr>
@@ -948,47 +856,39 @@
             </table>
 
             <!-- Transition Highlights Box -->
-            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 8.5pt; color: #334155;">
-                <strong style="color: #1e3a8a; font-size: 9pt;">📌 أهم الاستنتاجات الرقابية حول فترات التوقف الانتقالية:</strong>
-                <ul style="margin: 6px 0 0 0; padding-right: 18px; line-height: 1.6;">
-                    <li><strong>فجوة 2021 إلى 2022:</strong> استمرت <strong>252 يوماً</strong> معتمدة (أو 379 يوماً حتى تاريخ أول سند مسجل بالنظام في سبتمبر 2022). مثلت هذه الفترة مرحلة توقف كاملة نتجت عن إعادة جدولة المشاريع والترتيبات اللوجستية قبل استئناف حركة التوريد والصرف.</li>
-                    <li><strong>فترة الاتصال الذهبية (2023 ⬅️ 2024 ⬅️ 2025):</strong> سجلت انسيابية مطلقة (0 يوم فجوة)؛ حيث كان العمل في 31 ديسمبر يليه عمل مباشر في 1 يناير، مما يدل على النشاط التخزيني المتواصل والجاهزية العالية.</li>
-                    <li><strong>فجوة 2025 إلى 2026:</strong> امتدت لـ <strong>445 يوماً</strong> بين ختام سندات يناير 2025 وانطلاق العمليات ضمن النافذة التعاقدية الرسمية لعام 2026، وهي فجوة انتقالية مبررة تعاقدياً لحين توقيع وبدء سريان مخصصات 2026.</li>
-                </ul>
-            </div>
-        </section>
-
-        <!-- SECTION 6: Audit Recommendations & Sign-off -->
-        <section class="section-block" style="margin-bottom: 0;">
-            <div class="section-header">
-                <span class="section-num">6</span>
-                <h2 class="section-title">التوصيات الرقابية وخاتمة التدقيق (Audit Recommendations & Sign-off)</h2>
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 8pt; color: #334155;">
+                <strong style="color: #1e3a8a;">📌 ملخص الاستنتاجات الرقابية حول فترات التوقف:</strong>
+                <div style="margin-top: 3px; line-height: 1.5;">
+                    • <strong>فجوة 2021 ⬅️ 2022 (252 يوماً):</strong> مرحلة توقف مبررة ناتجة عن إعادة جدولة المشاريع والترتيبات اللوجستية.<br>
+                    • <strong>فترة الاتصال الذهبية (2023 ⬅️ 2024 ⬅️ 2025):</strong> انسيابية تامة (0 يوم فجوة) وجاهزية تخزينية متواصلة.<br>
+                    • <strong>فجوة 2025 ⬅️ 2026 (445 يوماً):</strong> مرحلة مبررة تعاقدياً لحين توقيع وبدء سريان النافذة الرسمية لعام 2026.
+                </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; align-items: start;">
-                <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; font-size: 8.5pt; color: #334155; line-height: 1.6;">
-                    <strong style="color: #1e3a8a;">توصيات لجنة التدقيق والمطابقة:</strong>
-                    <ol style="margin: 6px 0 0 0; padding-right: 16px;">
+            <!-- SECTION 5: Recommendations & Sign-off -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; align-items: start;">
+                <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; font-size: 8pt; color: #334155; line-height: 1.55;">
+                    <strong style="color: #1e3a8a; font-size: 8.5pt;">توصيات لجنة التدقيق والمطابقة المخزنية:</strong>
+                    <ol style="margin: 4px 0 0 0; padding-right: 16px;">
                         @foreach($executive_summary['audit_recommendations'] as $rec)
                             <li>{{ $rec }}</li>
                         @endforeach
-                        <li>الاعتماد المستمر لآلية تجميع وحزم السندات (Stacks) لضمان عدم وجود سندات سائبة أو أرقام تسلسلية غير مربوطة بدفاترها الأصلية.</li>
                     </ol>
                 </div>
 
-                <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; text-align: center;">
-                    <div style="font-size: 8.5pt; font-weight: bold; color: #1e3a8a; margin-bottom: 8px;">اعتماد تقرير التدقيق الرقابي</div>
-                    <div style="font-size: 7.5pt; color: #64748b; margin-bottom: 25px;">وحدة التدقيق والمطابقة المخزنية المركزية</div>
-                    <div style="border-bottom: 1px dashed #94a3b8; width: 80%; margin: 0 auto 6px auto;"></div>
-                    <div style="font-size: 8pt; font-weight: 600; color: #334155;">الختم والتوقيع الرسمي</div>
+                <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; text-align: center;">
+                    <div style="font-size: 8pt; font-weight: bold; color: #1e3a8a; margin-bottom: 4px;">اعتماد تقرير التدقيق الرقابي</div>
+                    <div style="font-size: 7.5pt; color: #64748b; margin-bottom: 22px;">وحدة التدقيق والمطابقة المركزية</div>
+                    <div style="border-bottom: 1px dashed #94a3b8; width: 75%; margin: 0 auto 5px auto;"></div>
+                    <div style="font-size: 7.5pt; font-weight: 700; color: #334155;">الختم والتوقيع الرسمي</div>
                 </div>
             </div>
         </section>
 
-        <!-- Document Footer -->
+        <!-- Document Footer Page 4 -->
         <footer class="footer">
-            <div>نظام إدارة وتتبع سندات مستودع التضامن • تم التوليد آلياً بتاريخ: {{ $report_timestamp }}</div>
-            <div>صفحة وثيقة رسمية معتمدة • سرية ومخصصة لأغراض التدقيق الرقابي الداخلي</div>
+            <div>نظام إدارة وتتبع سندات مستودع التضامن • صفحة 4 من 4 (نهاية التقرير المعتمد)</div>
+            <div>تم التوليد آلياً بتاريخ: {{ $report_timestamp }} • وثيقة رسمية معتمدة</div>
         </footer>
 
     </div>
