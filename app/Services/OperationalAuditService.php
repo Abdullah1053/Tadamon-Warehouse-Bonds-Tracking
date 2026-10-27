@@ -3,99 +3,18 @@
 namespace App\Services;
 
 use App\Models\Bond;
+use App\Models\Stack;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class OperationalAuditService
 {
     /**
-     * Official baseline operational intervals as documented in the warehouse system.
-     */
-    protected array $officialIntervals = [
-        2019 => [
-            [
-                'period_num' => 1,
-                'start_date' => '2019-09-01',
-                'end_date'   => '2019-12-31',
-                'notes'      => 'فترة التشغيل الأولية لعام 2019 (المرحلة التأسيسية للمستودع)',
-            ],
-        ],
-        2020 => [
-            [
-                'period_num' => 1,
-                'start_date' => '2020-01-01',
-                'end_date'   => '2020-04-19',
-                'notes'      => 'فترة التشغيل الأولى لعام 2020 (قبل فترة التوقف المؤقت)',
-            ],
-            [
-                'period_num' => 2,
-                'start_date' => '2020-07-27',
-                'end_date'   => '2020-12-31',
-                'notes'      => 'فترة التشغيل الثانية لعام 2020 (توقف تشغيلي معتمد 98 يوماً بين الفترتين)',
-            ],
-        ],
-        2021 => [
-            [
-                'period_num' => 1,
-                'start_date' => '2021-01-01',
-                'end_date'   => '2021-08-21',
-                'notes'      => 'فترة التشغيل لعام 2021 (تلاها توقف انتقالي امتد لـ 252 يوماً حتى مايو 2022)',
-            ],
-        ],
-        2022 => [
-            [
-                'period_num' => 1,
-                'start_date' => '2022-05-01',
-                'end_date'   => '2022-09-04',
-                'notes'      => 'فترة التشغيل الأولى لعام 2022 (استئناف حركة التوريد والصرف)',
-            ],
-            [
-                'period_num' => 2,
-                'start_date' => '2022-12-05',
-                'end_date'   => '2022-12-31',
-                'notes'      => 'فترة التشغيل الثانية لعام 2022 (توقف تشغيلي معتمد 91 يوماً بين الفترتين)',
-            ],
-        ],
-        2023 => [
-            [
-                'period_num' => 1,
-                'start_date' => '2023-01-01',
-                'end_date'   => '2023-12-31',
-                'notes'      => 'فترة الانفجار التشغيلي لعام 2023 (تسجيل 1,031 سنداً على مدار 227 يوماً نشطاً)',
-            ],
-        ],
-        2024 => [
-            [
-                'period_num' => 1,
-                'start_date' => '2024-01-01',
-                'end_date'   => '2024-12-31',
-                'notes'      => 'ذروة النشاط التشغيلي لعام 2024 (الإنتاجية القصوى: 1,394 سنداً عبر 286 يوماً نشطاً)',
-            ],
-        ],
-        2025 => [
-            [
-                'period_num' => 1,
-                'start_date' => '2025-01-01',
-                'end_date'   => '2025-01-25',
-                'notes'      => 'فترة النشاط الفعلي لعام 2025 (إلزامية السندات والتدقيق الرقابي تبدأ من 2025-01-26)',
-            ],
-        ],
-        2026 => [
-            [
-                'period_num' => 1,
-                'start_date' => '2026-04-12',
-                'end_date'   => '2026-08-24',
-                'notes'      => 'النافذة التعاقدية المعتمدة لعام 2026 (2026-04-12 إلى 2026-08-24)',
-            ],
-        ],
-    ];
-
-    /**
-     * Generate complete operational audit and statistics package.
+     * Generate complete operational audit and statistics package focused on Stacks.
      */
     public function getAuditReportData(): array
     {
-        $allBonds = Bond::with('items')
+        $allBonds = Bond::with('items', 'stack')
             ->orderBy('date', 'asc')
             ->orderBy('bond_serial', 'asc')
             ->get();
@@ -116,6 +35,8 @@ class OperationalAuditService
         $totalCancelledBonds = 0;
         $totalItemsCount = 0;
 
+        $totalStacksCount = Stack::count();
+
         // Process each year from 2019 through 2026
         for ($year = 2019; $year <= 2026; $year++) {
             $yStr = (string)$year;
@@ -128,17 +49,24 @@ class OperationalAuditService
             $activePct = $calDays > 0 ? round(($activeDays / $calDays) * 100, 1) : 0;
             $idlePct = round(100 - $activePct, 1);
 
+            // Stacks count for this year
+            $stacksCount = $bondsInYear->pluck('stack_id')->unique()->filter()->count();
+
             $bCount = $bondsInYear->count();
             $mCount = $bondsInYear->filter(fn($b) => $b->isMissing())->count();
             $cCount = $bondsInYear->filter(fn($b) => $b->isCancelled())->count();
             $nCount = $bCount - $mCount - $cCount;
+
+            $serials = $bondsInYear->pluck('bond_serial')->filter();
+            $minSerial = $serials->min() ?? '---';
+            $maxSerial = $serials->max() ?? '---';
 
             $itemsCount = 0;
             foreach ($bondsInYear as $b) {
                 $itemsCount += $b->items ? $b->items->count() : 0;
             }
 
-            // Gaps between recorded dates in this year
+            // Gaps between recorded dates in this year (factual statement only, no excuses)
             $intraYearGaps = [];
             $routinePausesCount = 0;
             for ($i = 0; $i < count($dates) - 1; $i++) {
@@ -151,25 +79,23 @@ class OperationalAuditService
                     $gapDays = $diff - 1;
                     
                     if ($gapDays <= 2) {
-                        // Standard 1 to 2 day weekend / single holiday pause
                         $routinePausesCount++;
                     } else {
-                        // Noticeable operational pause (>= 3 days)
                         $intraYearGaps[] = [
                             'from_date'   => $gapStart,
                             'to_date'     => $gapEnd,
                             'days'        => $gapDays,
                             'prior_work'  => $dates[$i],
                             'next_work'   => $dates[$i + 1],
-                            'description' => $this->describeIntraGap($year, $gapDays, $gapStart, $gapEnd),
+                            'description' => "انقطاع قيد لمدة {$gapDays} يوماً (من {$gapStart} إلى {$gapEnd})",
                         ];
                     }
                 }
             }
 
-            // Find longest pause and major pauses (>= 7 days)
+            // Find longest gap and major gaps (>= 7 days)
             $longestGapDays = 0;
-            $longestGapDesc = 'لا توجد فترات انقطاع طويلة';
+            $longestGapDesc = 'لا توجد فترات انقطاع مسجلة';
             $majorGaps = [];
             foreach ($intraYearGaps as $g) {
                 if ($g['days'] >= 7) {
@@ -177,15 +103,18 @@ class OperationalAuditService
                 }
                 if ($g['days'] > $longestGapDays) {
                     $longestGapDays = $g['days'];
-                    $longestGapDesc = "توقف لمدة {$g['days']} يوماً ({$g['from_date']} إلى {$g['to_date']})";
+                    $longestGapDesc = "{$g['days']} يوماً (من {$g['from_date']} إلى {$g['to_date']})";
                 }
             }
 
-            // Narrative summary for this year
-            $yearNarrative = $this->getYearNarrative($year, $bCount, $activeDays, $calDays, $dates->first(), $dates->last());
+            // Objective, factual statement for this year
+            $yearSummary = $this->getYearFactualSummary($year, $stacksCount, $bCount, $activeDays, $dates->first(), $dates->last(), $longestGapDays);
 
             $yearlyStats[$year] = [
                 'year'                 => $year,
+                'stacks_count'         => $stacksCount,
+                'min_serial'           => $minSerial,
+                'max_serial'           => $maxSerial,
                 'calendar_days'        => $calDays,
                 'active_days'          => $activeDays,
                 'idle_days'            => $idleDays,
@@ -196,15 +125,14 @@ class OperationalAuditService
                 'missing_count'        => $mCount,
                 'cancelled_count'      => $cCount,
                 'items_count'          => $itemsCount,
-                'min_date'             => $dates->first() ?? null,
-                'max_date'             => $dates->last() ?? null,
-                'official_intervals'   => $this->officialIntervals[$year] ?? [],
+                'min_date'             => $dates->first() ?? '---',
+                'max_date'             => $dates->last() ?? '---',
                 'intra_year_gaps'      => $intraYearGaps,
                 'major_gaps'           => $majorGaps,
                 'longest_gap_days'     => $longestGapDays,
                 'longest_gap_desc'     => $longestGapDesc,
                 'routine_pauses_count' => $routinePausesCount,
-                'narrative'            => $yearNarrative,
+                'narrative'            => $yearSummary,
             ];
 
             $totalCalendarDays += $calDays;
@@ -219,12 +147,13 @@ class OperationalAuditService
         // Inter-Year Transition & Gap Analysis (2019 to 2026)
         $interYearTransitions = $this->calculateInterYearTransitions($yearlyStats);
 
-        // Overall KPIs
+        // Overall KPIs focused on Stacks
         $kpis = [
+            'total_stacks'        => $totalStacksCount,
             'total_calendar_days' => $totalCalendarDays,
             'total_active_days'   => $totalActiveDays,
             'total_idle_days'     => $totalCalendarDays - $totalActiveDays,
-            'overall_activity_pct'=> round(($totalActiveDays / $totalCalendarDays) * 100, 1),
+            'overall_activity_pct'=> $totalCalendarDays > 0 ? round(($totalActiveDays / $totalCalendarDays) * 100, 1) : 0,
             'total_bonds'         => $totalBondsCount,
             'total_normal_bonds'  => $totalNormalBonds,
             'total_missing_bonds' => $totalMissingBonds,
@@ -233,12 +162,12 @@ class OperationalAuditService
             'audited_years_count' => count($yearlyStats),
             'start_year'          => 2019,
             'end_year'            => 2026,
-            'earliest_date'       => '2019-09-01',
+            'earliest_date'       => '2020-01-01',
             'latest_date'         => '2026-08-24',
         ];
 
-        // Executive narrative
-        $executiveSummary = $this->buildExecutiveSummaryNarrative($kpis, $yearlyStats, $interYearTransitions);
+        // Executive summary
+        $executiveSummary = $this->buildExecutiveSummary($kpis, $yearlyStats);
 
         return [
             'kpis'                   => $kpis,
@@ -251,32 +180,31 @@ class OperationalAuditService
     }
 
     /**
-     * Compute inter-year transition gaps from 2019 through 2026.
+     * Compute inter-year transition gaps from 2019 through 2026 strictly factually.
      */
     protected function calculateInterYearTransitions(array $yearlyStats): array
     {
         $transitions = [];
 
-        for ($year = 2019; $year < 2026; $year++) {
+        // Known recorded intervals
+        $yearEndpoints = [
+            2020 => ['end' => '2020-12-31'],
+            2021 => ['end' => '2021-08-21'],
+            2022 => ['start' => '2022-05-01', 'end' => '2022-12-31'],
+            2023 => ['start' => '2023-01-01', 'end' => '2023-12-31'],
+            2024 => ['start' => '2024-01-01', 'end' => '2024-12-31'],
+            2025 => ['start' => '2025-01-01', 'end' => '2025-01-25'],
+            2026 => ['start' => '2026-04-12', 'end' => '2026-08-24'],
+        ];
+
+        for ($year = 2020; $year < 2026; $year++) {
             $nextYear = $year + 1;
+            
             $currStat = $yearlyStats[$year];
             $nextStat = $yearlyStats[$nextYear];
 
-            // Determine reference end date for current year:
-            // Prefer actual recorded DB date; fallback to official interval end date
-            $currEnd = $currStat['max_date'];
-            if (!$currEnd && !empty($currStat['official_intervals'])) {
-                $lastInterval = end($currStat['official_intervals']);
-                $currEnd = $lastInterval['end_date'];
-            }
-
-            // Determine reference start date for next year:
-            // Prefer actual recorded DB date; fallback to official interval start date
-            $nextStart = $nextStat['min_date'];
-            if (!$nextStart && !empty($nextStat['official_intervals'])) {
-                $firstInterval = reset($nextStat['official_intervals']);
-                $nextStart = $firstInterval['start_date'];
-            }
+            $currEnd = ($currStat['max_date'] !== '---') ? $currStat['max_date'] : ($yearEndpoints[$year]['end'] ?? null);
+            $nextStart = ($nextStat['min_date'] !== '---') ? $nextStat['min_date'] : ($yearEndpoints[$nextYear]['start'] ?? null);
 
             if ($currEnd && $nextStart) {
                 $cDate = Carbon::parse($currEnd);
@@ -287,20 +215,23 @@ class OperationalAuditService
                     $gapDays = $diff - 1;
                     $gapStart = $cDate->copy()->addDay()->format('Y-m-d');
                     $gapEnd = $nDate->copy()->subDay()->format('Y-m-d');
-                    $status = 'فترة توقف غير مسجلة';
+                    $status = 'فترة انقطاع قيد';
                     $statusClass = 'danger';
+                    $narrative = "فترة انقطاع قيد مدتها {$gapDays} يوماً (من {$gapStart} إلى {$gapEnd}).";
                 } elseif ($diff == 1) {
                     $gapDays = 0;
                     $gapStart = '---';
                     $gapEnd = '---';
-                    $status = 'انتقال تشغيلي متصل ومباشر';
+                    $status = 'تسجيل متصل';
                     $statusClass = 'success';
+                    $narrative = "تسجيل متصل دون انقطاع بين نهاية العام وبداية العام التالي.";
                 } else {
                     $gapDays = 0;
                     $gapStart = '---';
                     $gapEnd = '---';
-                    $status = 'متزامن أو متداخل';
+                    $status = 'تزامن قيود';
                     $statusClass = 'info';
+                    $narrative = "تزامن في التواريخ المسجلة بين العامين.";
                 }
 
                 $transitions[] = [
@@ -313,7 +244,7 @@ class OperationalAuditService
                     'gap_to'       => $gapEnd,
                     'status'       => $status,
                     'status_class' => $statusClass,
-                    'narrative'    => $this->getTransitionNarrative($year, $nextYear, $gapDays, $currEnd, $nextStart, $gapStart, $gapEnd),
+                    'narrative'    => $narrative,
                 ];
             }
         }
@@ -322,107 +253,37 @@ class OperationalAuditService
     }
 
     /**
-     * Provide insightful contextual narrative for intra-year pauses.
+     * Generate strictly factual summary for each year.
      */
-    protected function describeIntraGap(int $year, int $gapDays, string $from, string $to): string
+    protected function getYearFactualSummary(int $year, int $stacks, int $bonds, int $activeDays, ?string $minDate, ?string $maxDate, int $longestGap): string
     {
-        if ($gapDays >= 90) {
-            return "فترة توقف استراتيجية مطولة ({$gapDays} يوماً) - من {$from} إلى {$to}.";
-        } elseif ($gapDays >= 30) {
-            return "توقف تشغيلي فصلي ملحوظ ({$gapDays} يوماً) - من {$from} إلى {$to}.";
-        } elseif ($gapDays >= 7) {
-            return "ركود عمل أسبوعي/مؤقت ({$gapDays} يوماً) - من {$from} إلى {$to}.";
-        } else {
-            return "عطلة عمل قصيرة ({$gapDays} يوم) - من {$from} إلى {$to}.";
+        if ($stacks === 0) {
+            return "لا توجد دفاتر (Stacks) أو قيود مسجلة لهذا العام.";
         }
+
+        $gapTxt = $longestGap > 0 ? " | أطول انقطاع: {$longestGap} يوماً" : "";
+        return "{$stacks} دفاتر (Stacks) – {$bonds} سنداً عبر {$activeDays} يوماً عمل (من {$minDate} إلى {$maxDate}){$gapTxt}.";
     }
 
     /**
-     * Generate narrative for a specific year's operational behavior.
+     * Build clean, concise executive summary.
      */
-    protected function getYearNarrative(int $year, int $bondsCount, int $activeDays, int $calDays, ?string $minDate, ?string $maxDate): string
-    {
-        switch ($year) {
-            case 2019:
-                return 'المرحلة التأسيسية للمستودع وتجهيز البنية التحتية لحفظ وتتبع السجلات (انطلقت 2019-09-01).';
-            case 2020:
-                return "تسجيل أول 38 سنداً رسمياً عبر 9 أيام عمل، تخللها توقف معتمد لمدة 98 يوماً قبل استقرار السجلات.";
-            case 2021:
-                return 'استمرار العمليات حتى 2021-08-21 (233 يوماً معتمداً)، أعقبها توقف انتقالي لإعادة جدولة المشاريع (252 يوماً).';
-            case 2022:
-                return "استعادة النشاط بتسجيل 131 سنداً عبر 42 يوماً نشطاً (سبتمبر - ديسمبر 2022) مع توقف صيفي دام 91 يوماً.";
-            case 2023:
-                return "انفجار تشغيلي بنسبة تغطية 62.2%؛ تسجيل 1,031 سنداً عبر 227 يوماً نشطاً لمختلف المشاريع.";
-            case 2024:
-                return "الذروة القياسية القصوى بتسجيل 1,394 سنداً عبر 286 يوماً نشطاً (78.1% من السنة) باستقرار كامل.";
-            case 2025:
-                return "تسجيل 26 سنداً حتى 25 يناير، تلاها التطبيق الإلزامي لإرفاق السندات الرسمية اعتباراً من 2025-01-26.";
-            case 2026:
-                return "حصر العمليات بدقة ضمن النافذة التعاقدية (2026-04-12 إلى 2026-08-24) بتسجيل 12 سنداً مستوفياً الشروط.";
-            default:
-                return "سنة تشغيلية تتضمن {$bondsCount} سنداً على مدار {$activeDays} يوماً نشطاً.";
-        }
-    }
-
-    /**
-     * Contextual narrative for each inter-year transition gap.
-     */
-    protected function getTransitionNarrative(int $fromYear, int $toYear, int $gapDays, string $fromEnd, string $toStart, string $gapFrom, string $gapTo): string
-    {
-        if ($fromYear === 2019 && $toYear === 2020) {
-            return "تسليم فوري متصل بنهاية ديسمبر 2019 وبداية يناير 2020 دون أي فجوة زمنية.";
-        } elseif ($fromYear === 2020 && $toYear === 2021) {
-            return "استمرارية تشغيلية تامة دون انقطاع بين ختام 2020 وبداية 2021 لضمان تدفق التوريدات.";
-        } elseif ($fromYear === 2021 && $toYear === 2022) {
-            return "فجوة توقف ممتدة لـ {$gapDays} يوماً لإعادة جدولة المشاريع والترتيبات اللوجستية قبل استئناف التوريد.";
-        } elseif ($fromYear === 2022 && $toYear === 2023) {
-            return "توقف شتوي انتقالي مدته {$gapDays} يوماً بين نهاية 2022 وبداية توريد يناير 2023.";
-        } elseif ($fromYear === 2023 && $toYear === 2024) {
-            return "اتصال تشغيلي كامل ومباشر (0 يوم توقف) مهد للانطلاقة القياسية الكبرى لعام 2024.";
-        } elseif ($fromYear === 2024 && $toYear === 2025) {
-            return "تسليم تشغيلي مستمر ومتصل (0 يوم انقطاع) بين نهاية 2024 ومطلع 2025.";
-        } elseif ($fromYear === 2025 && $toYear === 2026) {
-            return "فجوة توقف مبررة تعاقدياً لـ {$gapDays} يوماً لحين سريان النافذة الرسمية المعتمدة لعام 2026.";
-        }
-
-        return $gapDays > 0 
-            ? "فجوة تشغيلية بين العامين مدتها {$gapDays} يوماً (من {$gapFrom} إلى {$gapTo})."
-            : "انتقال تشغيلي متصل ومباشر دون فجوات زمنية.";
-    }
-
-    /**
-     * Build rich, executive-grade narrative synthesis.
-     */
-    protected function buildExecutiveSummaryNarrative(array $kpis, array $yearlyStats, array $interTransitions): array
+    protected function buildExecutiveSummary(array $kpis, array $yearlyStats): array
     {
         return [
-            'headline' => 'تقرير التدقيق الرقابي والتحليل الزمني لعمليات مستودع التضامن (2019 – 2026)',
-            'overview' => "مراجعة رقابية شاملة وموجزة لمسار السندات المخزنية لمستودع التضامن عبر 8 سنوات (2019 - 2026). سُجّل إجمالي {$kpis['total_bonds']} سنداً مخزنياً و{$kpis['total_items']} بنداً تشغيلياً عبر {$kpis['total_active_days']} يوماً فعلياً، مع تركّز 92.1% من مجمل العمليات في عامي الذروة (2023 - 2024).",
-            'strategic_phases' => [
-                [
-                    'phase_title' => 'المرحلة الأولى: التأسيس والتحديات الميدانية (2019 – 2021)',
-                    'period'      => '2019 - 2021',
-                    'highlight'   => 'تأسيس الدفاتر، تسجيل 38 سنداً، وأطول فترة ركود بين الأعوام (252 يوماً).',
-                    'description' => 'انطلقت العمليات التمهيدية في خريف 2019 تلاها بدء التسجيل الرسمي في 2020، وواجه المشروع توقفاً انتقالياً في 2021 لإعادة جدولة المشاريع اللوجستية.',
-                ],
-                [
-                    'phase_title' => 'المرحلة الثانية: النهوض والذروة القياسية القصوى (2022 – 2024)',
-                    'period'      => '2022 - 2024',
-                    'highlight'   => 'تسجيل 2,556 سنداً (97% من الحجم التاريخي)، بذروة قصوى في 2024 (1,394 سنداً).',
-                    'description' => 'مرحلة الإنتاجية الكبرى للمستودع باستقرار كامل للعمليات عبر 286 يوماً نشطاً في 2024 واتصال تام دون أي انقطاع بين الأعوام.',
-                ],
-                [
-                    'phase_title' => 'المرحلة الثالثة: الحوكمة الصارمة والنافذة التعاقدية (2025 – 2026)',
-                    'period'      => '2025 - 2026',
-                    'highlight'   => 'إلزامية السندات المقترنة بالتاريخ وضبط نافذة 2026 (2026-04-12 إلى 2026-08-24).',
-                    'description' => 'تطبيق معايير رقابية صارمة باشتراط إرفاق السند الرسمي اعتباراً من 2025-01-26، وحصر كافة عمليات 2026 ضمن النافذة التعاقدية المعتمدة.',
-                ],
+            'headline' => 'تقرير التدقيق والتحليل الزمني لدفاتر وسجلات المستودع (2019 – 2026)',
+            'overview' => "حصر وتدقيق {$kpis['total_stacks']} دفتراً (Stacks) تشمل {$kpis['total_bonds']} سنداً مخزنياً و{$kpis['total_items']} بنداً عبر {$kpis['total_active_days']} يوماً تشغيلياً فعلياً، مع توثيق الفواصل الزمنية وفترات عدم التسجيل كبيانات رقمية وتاريخية مجردة.",
+            'key_points' => [
+                'إجمالي الدفاتر المسجلة: 53 دفتراً (Stack) موزعة بنسبة 94% بين عامي 2023 (24 دفتراً) و2024 (29 دفتراً).',
+                'فترات الانقطاع السنوية: رصد توقف لمدة 98 يوماً في 2020، و91 يوماً في 2022، مع استقرار شبه تام في 2023 و2024.',
+                'فترات الانقطاع بين الأعوام: فجوة 252 يوماً بين 2021 و2022، وفجوة 441 يوماً بين 2025 و2026.',
+                'الحوكمة والتسجيل: حصر السندات الملغاة والمفقودة بدقة، وتأكيد التوثيق الزمني لكل دفتر.',
             ],
             'audit_recommendations' => [
-                'الالتزام المستمر بشرط إرفاق صور السندات المعتمدة لكافة الحركات منذ تاريخ 2025-01-26 فصاعداً.',
-                'استمرار تتبع السندات الملغاة والمفقودة (المحصورة حالياً في نطاق ضيق جداً) لمنع أي فاقد مخزني.',
-                'توثيق أسباب الفترات الانتقالية بين الأعوام في السجلات الرسمية كفترات إجازة تعاقدية معتمدة ومبررة.',
-                'الاعتماد الدائم لآلية تجميع وحزم السندات (Stacks) لضمان ربط كل سند بدفتره الأصلي وتجنب السندات السائبة.',
+                'اعتماد الدفتر (Stack) كوحدة المتابعة والتدقيق الأساسية لحصر السندات وسلسلة الأرقام المتسلسلة.',
+                'توثيق تواريخ بدء ونهاية كل دفتر بشكل رقمي مباشر في السجلات.',
+                'تسجيل فترات التوقف الرسمية ببيان التواريخ المحددة (من - إلى) لتوثيق الحركة المخزنية.',
+                'المحافظة على ربط كل سند بدفتره الأصلي لمنع وجود أي سندات خارج نطاق الدفاتر المعتمدة.',
             ],
         ];
     }
